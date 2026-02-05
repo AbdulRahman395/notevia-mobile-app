@@ -162,17 +162,18 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer>
 
           // Top bar with close button
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 16,
+            right: 16,
             child: Container(
-              height: 60,
+              height: 50,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [Colors.black.withOpacity(0.7), Colors.transparent],
                 ),
+                borderRadius: BorderRadius.circular(25),
               ),
               child: Row(
                 children: [

@@ -82,21 +82,27 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
     try {
       final dateTime = DateTime.parse(dateString);
       final months = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
+        'January',
+        'February',
+        'March',
+        'April',
         'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December',
       ];
 
-      return '${months[dateTime.month - 1]} ${dateTime.day}, ${dateTime.year}';
+      // Format hour to 12-hour format with am/pm
+      int hour = dateTime.hour;
+      String period = hour >= 12 ? 'pm' : 'am';
+      if (hour > 12) hour -= 12;
+      if (hour == 0) hour = 12;
+
+      return '${months[dateTime.month - 1]} ${dateTime.day}, ${dateTime.year} - $hour:${dateTime.minute.toString().padLeft(2, '0')} $period';
     } catch (e) {
       return dateString;
     }
@@ -105,18 +111,21 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(
+            Icons.arrow_back,
+            color: Theme.of(context).appBarTheme.foregroundColor,
+          ),
         ),
         title: Text(
           'Details',
-          style: const TextStyle(
-            color: Colors.black,
+          style: TextStyle(
+            color: Theme.of(context).appBarTheme.foregroundColor,
             fontWeight: FontWeight.w600,
             fontSize: 20,
           ),
@@ -124,7 +133,10 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
         actions: [
           IconButton(
             onPressed: _fetchJournal,
-            icon: const Icon(Icons.refresh, color: Colors.black),
+            icon: Icon(
+              Icons.refresh,
+              color: Theme.of(context).appBarTheme.foregroundColor,
+            ),
           ),
         ],
       ),
@@ -135,20 +147,33 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.4),
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'Error loading journal',
                     style: TextStyle(
                       fontSize: 18,
-                      color: Colors.grey[600],
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.6),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     _errorMessage,
-                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.5),
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
@@ -169,40 +194,19 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
                   // Title
                   Text(
                     _journal!['title'] ?? 'Untitled',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // Date
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      _formatDate(_journal!['journal_date']),
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
 
                   // Content
                   Container(
                     padding: const EdgeInsets.all(20.0),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
@@ -219,7 +223,7 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
                         "body": Style(
                           fontSize: FontSize(16),
                           lineHeight: const LineHeight(1.6),
-                          color: Colors.black87,
+                          color: Theme.of(context).colorScheme.onSurface,
                           margin: Margins.zero,
                           padding: HtmlPaddings.zero,
                         ),
@@ -238,7 +242,7 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
                     Container(
                       padding: const EdgeInsets.all(20.0),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
@@ -257,7 +261,7 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
-                              color: Colors.black87,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -299,7 +303,9 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
                                       errorBuilder:
                                           (context, error, stackTrace) {
                                             return Container(
-                                              color: Colors.grey[200],
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.surface,
                                               child: Column(
                                                 mainAxisAlignment:
                                                     MainAxisAlignment.center,
@@ -307,14 +313,20 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
                                                   Icon(
                                                     Icons.broken_image,
                                                     size: 40,
-                                                    color: Colors.grey[400],
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurface
+                                                        .withOpacity(0.4),
                                                   ),
                                                   const SizedBox(height: 8),
                                                   Text(
                                                     'Image not available',
                                                     style: TextStyle(
                                                       fontSize: 12,
-                                                      color: Colors.grey[500],
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface
+                                                          .withOpacity(0.5),
                                                     ),
                                                     textAlign: TextAlign.center,
                                                   ),
@@ -326,7 +338,9 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
                                         if (loadingProgress == null)
                                           return child;
                                         return Container(
-                                          color: Colors.grey[100],
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.surface,
                                           child: Center(
                                             child: CircularProgressIndicator(
                                               value:
@@ -362,7 +376,7 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
                     Container(
                       padding: const EdgeInsets.all(16.0),
                       decoration: BoxDecoration(
-                        color: Colors.grey[100],
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Column(
@@ -373,25 +387,31 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: Colors.grey[700],
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.8),
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Created: ${DateTime.parse(_journal!['created_at']).toString().substring(0, 19)}',
+                            'Created On: ${_formatDate(_journal!['created_at'])}',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.6),
                             ),
                           ),
                           if (_journal!['updated_at'] != null &&
                               _journal!['updated_at'] !=
                                   _journal!['created_at'])
                             Text(
-                              'Updated: ${DateTime.parse(_journal!['updated_at']).toString().substring(0, 19)}',
+                              'Updated: ${_formatDate(_journal!['updated_at'])}',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey[600],
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withOpacity(0.6),
                               ),
                             ),
                         ],

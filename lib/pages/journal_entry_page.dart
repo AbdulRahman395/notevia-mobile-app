@@ -206,14 +206,15 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'New Journal Entry',
           style: TextStyle(
-            color: Colors.black,
+            color:
+                Theme.of(context).appBarTheme.foregroundColor ?? Colors.black,
             fontWeight: FontWeight.w600,
             fontSize: 20,
           ),
@@ -222,7 +223,11 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
           onPressed: () {
             Navigator.of(context).pop();
           },
-          icon: const Icon(Icons.close, color: Colors.black),
+          icon: Icon(
+            Icons.close,
+            color:
+                Theme.of(context).appBarTheme.foregroundColor ?? Colors.black,
+          ),
         ),
         actions: [
           TextButton(
@@ -268,16 +273,24 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                 controller: _titleController,
                 decoration: InputDecoration(
                   hintText: 'Enter journal title...',
-                  hintStyle: TextStyle(color: Colors.grey[400]),
+                  hintStyle: TextStyle(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.4),
+                  ),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: Theme.of(context).cardColor,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).dividerColor,
+                    ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).dividerColor,
+                    ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -305,9 +318,9 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
               const SizedBox(height: 8),
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[300]!),
+                  border: Border.all(color: Theme.of(context).dividerColor),
                 ),
                 child: Column(
                   children: [
@@ -337,8 +350,10 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                                   : 'Select date...',
                               style: TextStyle(
                                 color: _selectedDate != null
-                                    ? Colors.black87
-                                    : Colors.grey[400],
+                                    ? Theme.of(context).colorScheme.onSurface
+                                    : Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface.withOpacity(0.4),
                                 fontSize: 16,
                               ),
                             ),
@@ -373,32 +388,36 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                         onPageChanged: (focusedDay) {
                           _focusedDay = focusedDay;
                         },
-                        headerStyle: const HeaderStyle(
+                        headerStyle: HeaderStyle(
                           formatButtonVisible: false,
                           titleCentered: true,
                           titleTextStyle: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                           leftChevronIcon: Icon(
                             Icons.chevron_left,
-                            color: Colors.black87,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                           rightChevronIcon: Icon(
                             Icons.chevron_right,
-                            color: Colors.black87,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
-                        daysOfWeekStyle: const DaysOfWeekStyle(
+                        daysOfWeekStyle: DaysOfWeekStyle(
                           weekdayStyle: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.7),
                             fontWeight: FontWeight.w500,
                           ),
                           weekendStyle: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.7),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -411,17 +430,19 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                             color: Colors.blue[100],
                             shape: BoxShape.circle,
                           ),
-                          defaultTextStyle: const TextStyle(
+                          defaultTextStyle: TextStyle(
                             fontSize: 16,
-                            color: Colors.black87,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
-                          weekendTextStyle: const TextStyle(
+                          weekendTextStyle: TextStyle(
                             fontSize: 16,
-                            color: Colors.black87,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                           outsideTextStyle: TextStyle(
                             fontSize: 16,
-                            color: Colors.grey[400]!,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.4),
                           ),
                           selectedTextStyle: const TextStyle(
                             fontSize: 16,
@@ -457,16 +478,24 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                 maxLines: 8,
                 decoration: InputDecoration(
                   hintText: 'Write your thoughts here...',
-                  hintStyle: TextStyle(color: Colors.grey[400]),
+                  hintStyle: TextStyle(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.4),
+                  ),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: Theme.of(context).cardColor,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).dividerColor,
+                    ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).dividerColor,
+                    ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -506,7 +535,9 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                             margin: const EdgeInsets.only(right: 8),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey[300]!),
+                              border: Border.all(
+                                color: Theme.of(context).dividerColor,
+                              ),
                             ),
                             child: Stack(
                               children: [
@@ -556,10 +587,10 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                           vertical: 12,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.grey[100],
+                          color: Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.grey[300]!,
+                            color: Theme.of(context).dividerColor,
                             style: BorderStyle.solid,
                           ),
                         ),
@@ -569,13 +600,17 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                             Icon(
                               Icons.add_photo_alternate_outlined,
                               size: 20,
-                              color: Colors.grey[600],
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.6),
                             ),
                             const SizedBox(width: 8),
                             Text(
                               'Add More Images',
                               style: TextStyle(
-                                color: Colors.grey[600],
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withOpacity(0.6),
                                 fontSize: 14,
                               ),
                             ),
@@ -593,10 +628,10 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                     width: double.infinity,
                     height: 150,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Colors.grey[300]!,
+                        color: Theme.of(context).dividerColor,
                         style: BorderStyle.solid,
                       ),
                     ),
@@ -606,13 +641,17 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                         Icon(
                           Icons.add_photo_alternate_outlined,
                           size: 48,
-                          color: Colors.grey[400],
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.4),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'Add Images',
                           style: TextStyle(
-                            color: Colors.grey[600],
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.6),
                             fontSize: 16,
                           ),
                         ),
@@ -620,7 +659,9 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                         Text(
                           'Tap to select from gallery',
                           style: TextStyle(
-                            color: Colors.grey[400],
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.4),
                             fontSize: 12,
                           ),
                         ),

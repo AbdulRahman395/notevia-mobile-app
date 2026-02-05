@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/token_service.dart';
+import '../services/theme_service.dart';
 import '../widgets/full_screen_image_viewer.dart';
 
 class HomePage extends StatefulWidget {
@@ -16,18 +17,28 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   bool _isLoading = true;
   bool _hasError = false;
   String _errorMessage = '';
+  final ThemeService _themeService = ThemeService();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _themeService.loadTheme();
+    _themeService.addListener(_onThemeChanged);
     _fetchData();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _themeService.removeListener(_onThemeChanged);
     super.dispose();
+  }
+
+  void _onThemeChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -138,7 +149,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -170,7 +181,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                           'Welcome back!',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey[600],
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.6),
                           ),
                         ),
                         Text(
@@ -181,6 +194,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () async {
+                      await _themeService.toggleTheme();
+                    },
+                    icon: Icon(
+                      _themeService.isDarkMode
+                          ? Icons.light_mode
+                          : Icons.dark_mode,
                     ),
                   ),
                   IconButton(
@@ -215,7 +239,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             'Error loading journals',
                             style: TextStyle(
                               fontSize: 18,
-                              color: Colors.grey[600],
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.6),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -224,7 +250,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             _errorMessage,
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey[500],
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.5),
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -251,7 +279,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             'No journals yet',
                             style: TextStyle(
                               fontSize: 18,
-                              color: Colors.grey[600],
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.6),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -260,7 +290,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             'Start writing your first journal entry',
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey[500],
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.5),
                             ),
                           ),
                         ],
@@ -287,7 +319,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               margin: const EdgeInsets.only(bottom: 15.0),
                               padding: const EdgeInsets.all(20.0),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: Theme.of(context).cardColor,
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: [
                                   BoxShadow(
@@ -321,7 +353,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                           vertical: 4,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: Colors.grey[100],
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.surface,
                                           borderRadius: BorderRadius.circular(
                                             8,
                                           ),
@@ -330,7 +364,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                           _formatDate(journal['journal_date']),
                                           style: TextStyle(
                                             fontSize: 12,
-                                            color: Colors.grey[600],
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withOpacity(0.6),
                                             fontWeight: FontWeight.w400,
                                           ),
                                         ),
@@ -345,7 +382,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     _stripHtmlTags(journal['content'] ?? ''),
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: Colors.grey[700],
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface.withOpacity(0.7),
                                       height: 1.4,
                                     ),
                                     maxLines: 3,
@@ -470,7 +509,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                       Icon(
                                         Icons.arrow_forward_ios,
                                         size: 16,
-                                        color: Colors.grey[400],
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withOpacity(0.4),
                                       ),
                                     ],
                                   ),
