@@ -212,7 +212,11 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
         elevation: 0,
         title: const Text(
           'New Journal Entry',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.w600,
+            fontSize: 20,
+          ),
         ),
         leading: IconButton(
           onPressed: () {

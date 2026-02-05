@@ -113,6 +113,14 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
           onPressed: () => Navigator.of(context).pop(),
           icon: const Icon(Icons.arrow_back, color: Colors.black),
         ),
+        title: Text(
+          'Details',
+          style: const TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.w600,
+            fontSize: 20,
+          ),
+        ),
         actions: [
           IconButton(
             onPressed: _fetchJournal,
