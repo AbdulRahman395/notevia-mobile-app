@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_html/flutter_html.dart';
 import '../services/api_service.dart';
 import '../services/token_service.dart';
 import '../services/theme_service.dart';
@@ -18,6 +19,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   bool _hasError = false;
   String _errorMessage = '';
   final ThemeService _themeService = ThemeService();
+  final FocusNode _searchFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -32,6 +34,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _themeService.removeListener(_onThemeChanged);
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -220,329 +223,374 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               ),
             ),
 
+            // Search Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Container(
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(25),
+                  border: Border.all(color: Colors.grey[300]!, width: 1),
+                ),
+                child: TextField(
+                  focusNode: _searchFocusNode,
+                  decoration: InputDecoration(
+                    hintText: 'Search journals...',
+                    hintStyle: TextStyle(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.5),
+                      fontSize: 16,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.6),
+                      size: 20,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontSize: 16,
+                  ),
+                  onChanged: (value) {
+                    // TODO: Implement search functionality
+                  },
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
             // Journals List
             Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _hasError
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 64,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Error loading journals',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withOpacity(0.6),
-                              fontWeight: FontWeight.w500,
+              child: GestureDetector(
+                onTap: () {
+                  _searchFocusNode.unfocus();
+                },
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _hasError
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              size: 64,
+                              color: Colors.grey[400],
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _errorMessage,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withOpacity(0.5),
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 24),
-                          ElevatedButton(
-                            onPressed: _fetchData,
-                            child: const Text('Try Again'),
-                          ),
-                        ],
-                      ),
-                    )
-                  : _journals.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.menu_book,
-                            size: 64,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No journals yet',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withOpacity(0.6),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Start writing your first journal entry',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withOpacity(0.5),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _fetchData,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                        itemCount: _journals.length,
-                        itemBuilder: (context, index) {
-                          final journal = _journals[index];
-                          return GestureDetector(
-                            onTap: () {
-                              final journalId = journal['id'] as int?;
-                              if (journalId != null) {
-                                Navigator.of(context).pushNamed(
-                                  '/journal-detail',
-                                  arguments: journalId,
-                                );
-                              }
-                            },
-                            child: Container(
-                              margin: const EdgeInsets.only(bottom: 15.0),
-                              padding: const EdgeInsets.all(20.0),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).cardColor,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.grey.withOpacity(0.1),
-                                    spreadRadius: 1,
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
+                            const SizedBox(height: 16),
+                            Text(
+                              'Error loading journals',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withOpacity(0.6),
+                                fontWeight: FontWeight.w500,
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Title and Date
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          journal['title'] ?? 'Untitled',
-                                          style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.surface,
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          _formatDate(journal['journal_date']),
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface
-                                                .withOpacity(0.6),
-                                            fontWeight: FontWeight.w400,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _errorMessage,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withOpacity(0.5),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 24),
+                            ElevatedButton(
+                              onPressed: _fetchData,
+                              child: const Text('Try Again'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : _journals.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.menu_book,
+                              size: 64,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No journals yet',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withOpacity(0.6),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Start writing your first journal entry',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withOpacity(0.5),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: _fetchData,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          itemCount: _journals.length,
+                          itemBuilder: (context, index) {
+                            final journal = _journals[index];
+                            return GestureDetector(
+                              onTap: () {
+                                _searchFocusNode.unfocus();
+                                final journalId = journal['id'] as int?;
+                                if (journalId != null) {
+                                  Navigator.of(context).pushNamed(
+                                    '/journal-detail',
+                                    arguments: journalId,
+                                  );
+                                }
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 15.0),
+                                padding: const EdgeInsets.all(20.0),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).cardColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.grey[300]!,
+                                    width: 1,
                                   ),
-
-                                  const SizedBox(height: 12),
-
-                                  // Content
-                                  Text(
-                                    _stripHtmlTags(journal['content'] ?? ''),
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurface.withOpacity(0.7),
-                                      height: 1.4,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.grey.withOpacity(0.1),
+                                      spreadRadius: 1,
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
                                     ),
-                                    maxLines: 3,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-
-                                  const SizedBox(height: 12),
-
-                                  // Media Images (small thumbnails)
-                                  if (journal['media'] != null &&
-                                      journal['media'] is List &&
-                                      (journal['media'] as List).isNotEmpty)
-                                    SizedBox(
-                                      height: 60,
-                                      child: ListView.builder(
-                                        scrollDirection: Axis.horizontal,
-                                        itemCount:
-                                            (journal['media'] as List).length,
-                                        itemBuilder: (context, mediaIndex) {
-                                          final media =
-                                              (journal['media']
-                                                  as List)[mediaIndex];
-                                          final imageUrl = media['url'] ?? '';
-
-                                          return GestureDetector(
-                                            onTap: () {
-                                              Navigator.of(context).push(
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      FullScreenImageViewer(
-                                                        imageUrl: imageUrl,
-                                                        heroTag:
-                                                            'home_image_${journal['id']}_$mediaIndex',
-                                                      ),
-                                                ),
-                                              );
-                                            },
-                                            child: Container(
-                                              width: 60,
-                                              height: 60,
-                                              margin: const EdgeInsets.only(
-                                                right: 8,
-                                              ),
-                                              child: Hero(
-                                                tag:
-                                                    'home_image_${journal['id']}_$mediaIndex',
-                                                child: ClipRRect(
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                  child: Image.network(
-                                                    imageUrl,
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder:
-                                                        (
-                                                          context,
-                                                          error,
-                                                          stackTrace,
-                                                        ) {
-                                                          return Container(
-                                                            color: Colors
-                                                                .grey[200],
-                                                            child: Icon(
-                                                              Icons
-                                                                  .broken_image,
-                                                              size: 20,
-                                                              color: Colors
-                                                                  .grey[400],
-                                                            ),
-                                                          );
-                                                        },
-                                                    loadingBuilder:
-                                                        (
-                                                          context,
-                                                          child,
-                                                          loadingProgress,
-                                                        ) {
-                                                          if (loadingProgress ==
-                                                              null)
-                                                            return child;
-                                                          return Container(
-                                                            color: Colors
-                                                                .grey[100],
-                                                            child: Center(
-                                                              child: CircularProgressIndicator(
-                                                                strokeWidth: 2,
-                                                                value:
-                                                                    loadingProgress
-                                                                            .expectedTotalBytes !=
-                                                                        null
-                                                                    ? loadingProgress
-                                                                              .cumulativeBytesLoaded /
-                                                                          loadingProgress
-                                                                              .expectedTotalBytes!
-                                                                    : null,
-                                                                valueColor:
-                                                                    AlwaysStoppedAnimation<
-                                                                      Color
-                                                                    >(
-                                                                      Colors
-                                                                          .blue[400]!,
-                                                                    ),
-                                                              ),
-                                                            ),
-                                                          );
-                                                        },
-                                                  ),
-                                                ),
-                                              ),
+                                  ],
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Title and Date
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            journal['title'] ?? 'Untitled',
+                                            style: const TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
                                             ),
-                                          );
-                                        },
-                                      ),
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.surface,
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            _formatDate(
+                                              journal['journal_date'],
+                                            ),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withOpacity(0.6),
+                                              fontWeight: FontWeight.w400,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
 
-                                  const SizedBox(height: 12),
+                                    const SizedBox(height: 12),
 
-                                  // Footer
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Icon(
-                                        Icons.arrow_forward_ios,
-                                        size: 16,
+                                    // Content
+                                    Text(
+                                      _stripHtmlTags(journal['content'] ?? ''),
+                                      style: TextStyle(
+                                        fontSize: 14,
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onSurface
-                                            .withOpacity(0.4),
+                                            .withOpacity(0.7),
+                                        height: 1.4,
                                       ),
-                                    ],
-                                  ),
-                                ],
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+
+                                    const SizedBox(height: 12),
+
+                                    // Media Images (small thumbnails)
+                                    if (journal['media'] != null &&
+                                        journal['media'] is List &&
+                                        (journal['media'] as List).isNotEmpty)
+                                      SizedBox(
+                                        height: 60,
+                                        child: ListView.builder(
+                                          scrollDirection: Axis.horizontal,
+                                          itemCount:
+                                              (journal['media'] as List).length,
+                                          itemBuilder: (context, mediaIndex) {
+                                            final media =
+                                                (journal['media']
+                                                    as List)[mediaIndex];
+                                            final imageUrl = media['url'] ?? '';
+
+                                            return GestureDetector(
+                                              onTap: () {
+                                                Navigator.of(context).push(
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        FullScreenImageViewer(
+                                                          imageUrl: imageUrl,
+                                                          heroTag:
+                                                              'home_image_${journal['id']}_$mediaIndex',
+                                                        ),
+                                                  ),
+                                                );
+                                              },
+                                              child: Container(
+                                                width: 60,
+                                                height: 60,
+                                                margin: const EdgeInsets.only(
+                                                  right: 8,
+                                                ),
+                                                child: Hero(
+                                                  tag:
+                                                      'home_image_${journal['id']}_$mediaIndex',
+                                                  child: ClipRRect(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          8,
+                                                        ),
+                                                    child: Image.network(
+                                                      imageUrl,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder:
+                                                          (
+                                                            context,
+                                                            error,
+                                                            stackTrace,
+                                                          ) {
+                                                            return Container(
+                                                              color: Colors
+                                                                  .grey[200],
+                                                              child: Icon(
+                                                                Icons
+                                                                    .broken_image,
+                                                                size: 20,
+                                                                color: Colors
+                                                                    .grey[400],
+                                                              ),
+                                                            );
+                                                          },
+                                                      loadingBuilder:
+                                                          (
+                                                            context,
+                                                            child,
+                                                            loadingProgress,
+                                                          ) {
+                                                            if (loadingProgress ==
+                                                                null) {
+                                                              return child;
+                                                            }
+                                                            return Container(
+                                                              color: Colors
+                                                                  .grey[100],
+                                                              child: Center(
+                                                                child: CircularProgressIndicator(
+                                                                  strokeWidth:
+                                                                      2,
+                                                                  value:
+                                                                      loadingProgress
+                                                                              .expectedTotalBytes !=
+                                                                          null
+                                                                      ? loadingProgress.cumulativeBytesLoaded /
+                                                                            loadingProgress.expectedTotalBytes!
+                                                                      : null,
+                                                                  valueColor:
+                                                                      AlwaysStoppedAnimation<
+                                                                        Color
+                                                                      >(
+                                                                        Colors
+                                                                            .blue[400]!,
+                                                                      ),
+                                                                ),
+                                                              ),
+                                                            );
+                                                          },
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+
+                                    const SizedBox(height: 12),
+
+                                    // Footer
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Icon(
+                                          Icons.arrow_forward_ios,
+                                          size: 16,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withOpacity(0.4),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       ),
-                    ),
+              ),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await Navigator.of(
-            context,
-          ).pushNamed('/journal-entry');
-          // Refresh data if a new journal was created
-          if (result == true) {
-            _fetchData();
-          }
-        },
-        backgroundColor: Colors.blue[600],
-        foregroundColor: Colors.white,
-        elevation: 4,
-        child: const Icon(Icons.add),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }
