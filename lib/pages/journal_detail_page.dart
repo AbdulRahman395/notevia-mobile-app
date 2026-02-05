@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 import '../services/api_service.dart';
 import '../services/token_service.dart';
+import '../widgets/full_screen_image_viewer.dart';
 
 class JournalDetailPage extends StatefulWidget {
   final int journalId;
@@ -44,6 +45,18 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
             _journal = result['data'];
             _isLoading = false;
           });
+        } else if (result['requires_auth_redirect'] == true) {
+          // Handle 401 - redirect to PIN verification with auth token
+          () async {
+            final authToken = await TokenService.getAuthToken();
+            if (authToken != null && mounted) {
+              Navigator.of(context).pushNamedAndRemoveUntil(
+                '/pin-verification',
+                (Route<dynamic> route) => false,
+                arguments: authToken,
+              );
+            }
+          }();
         } else {
           setState(() {
             _hasError = true;
@@ -99,13 +112,6 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-        ),
-        title: Text(
-          _journal?['title'] ?? 'Journal Entry',
-          style: const TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.w600,
-          ),
         ),
         actions: [
           IconButton(
@@ -215,6 +221,132 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
                       },
                     ),
                   ),
+                  const SizedBox(height: 24),
+
+                  // Media Images
+                  if (_journal!['media'] != null &&
+                      _journal!['media'] is List &&
+                      (_journal!['media'] as List).isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(20.0),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.1),
+                            spreadRadius: 1,
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Photos',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          // Display images in a grid
+                          GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                  childAspectRatio: 1.0,
+                                ),
+                            itemCount: (_journal!['media'] as List).length,
+                            itemBuilder: (context, index) {
+                              final media = (_journal!['media'] as List)[index];
+                              final imageUrl = media['url'] ?? '';
+
+                              return GestureDetector(
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => FullScreenImageViewer(
+                                        imageUrl: imageUrl,
+                                        heroTag:
+                                            'journal_image_${media['id']}_$index',
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: Hero(
+                                  tag: 'journal_image_${media['id']}_$index',
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      imageUrl,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                            return Container(
+                                              color: Colors.grey[200],
+                                              child: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Icon(
+                                                    Icons.broken_image,
+                                                    size: 40,
+                                                    color: Colors.grey[400],
+                                                  ),
+                                                  const SizedBox(height: 8),
+                                                  Text(
+                                                    'Image not available',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: Colors.grey[500],
+                                                    ),
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                      loadingBuilder: (context, child, loadingProgress) {
+                                        if (loadingProgress == null)
+                                          return child;
+                                        return Container(
+                                          color: Colors.grey[100],
+                                          child: Center(
+                                            child: CircularProgressIndicator(
+                                              value:
+                                                  loadingProgress
+                                                          .expectedTotalBytes !=
+                                                      null
+                                                  ? loadingProgress
+                                                            .cumulativeBytesLoaded /
+                                                        loadingProgress
+                                                            .expectedTotalBytes!
+                                                  : null,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                    Colors.blue[400]!,
+                                                  ),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
                   const SizedBox(height: 24),
 
                   // Metadata

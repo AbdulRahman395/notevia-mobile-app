@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/token_service.dart';
+import '../widgets/full_screen_image_viewer.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -9,7 +10,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   List<dynamic> _journals = [];
   Map<String, dynamic>? _profile;
   bool _isLoading = true;
@@ -19,7 +20,23 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _fetchData();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Refresh data when app comes to foreground
+    if (state == AppLifecycleState.resumed) {
+      _fetchData();
+    }
   }
 
   Future<void> _fetchData() async {
@@ -41,10 +58,36 @@ class _HomePageState extends State<HomePage> {
         setState(() {
           if (journalsResult['success']) {
             _journals = journalsResult['data']['data'] ?? [];
+          } else if (journalsResult['requires_auth_redirect'] == true) {
+            // Handle 401 - redirect to PIN verification with auth token
+            () async {
+              final authToken = await TokenService.getAuthToken();
+              if (authToken != null && mounted) {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/pin-verification',
+                  (Route<dynamic> route) => false,
+                  arguments: authToken,
+                );
+              }
+            }();
+            return;
           }
 
           if (profileResult['success']) {
             _profile = profileResult['data'];
+          } else if (profileResult['requires_auth_redirect'] == true) {
+            // Handle 401 - redirect to PIN verification with auth token
+            () async {
+              final authToken = await TokenService.getAuthToken();
+              if (authToken != null && mounted) {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/pin-verification',
+                  (Route<dynamic> route) => false,
+                  arguments: authToken,
+                );
+              }
+            }();
+            return;
           }
 
           _isLoading = false;
@@ -311,6 +354,114 @@ class _HomePageState extends State<HomePage> {
 
                                   const SizedBox(height: 12),
 
+                                  // Media Images (small thumbnails)
+                                  if (journal['media'] != null &&
+                                      journal['media'] is List &&
+                                      (journal['media'] as List).isNotEmpty)
+                                    SizedBox(
+                                      height: 60,
+                                      child: ListView.builder(
+                                        scrollDirection: Axis.horizontal,
+                                        itemCount:
+                                            (journal['media'] as List).length,
+                                        itemBuilder: (context, mediaIndex) {
+                                          final media =
+                                              (journal['media']
+                                                  as List)[mediaIndex];
+                                          final imageUrl = media['url'] ?? '';
+
+                                          return GestureDetector(
+                                            onTap: () {
+                                              Navigator.of(context).push(
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      FullScreenImageViewer(
+                                                        imageUrl: imageUrl,
+                                                        heroTag:
+                                                            'home_image_${journal['id']}_$mediaIndex',
+                                                      ),
+                                                ),
+                                              );
+                                            },
+                                            child: Container(
+                                              width: 60,
+                                              height: 60,
+                                              margin: const EdgeInsets.only(
+                                                right: 8,
+                                              ),
+                                              child: Hero(
+                                                tag:
+                                                    'home_image_${journal['id']}_$mediaIndex',
+                                                child: ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  child: Image.network(
+                                                    imageUrl,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder:
+                                                        (
+                                                          context,
+                                                          error,
+                                                          stackTrace,
+                                                        ) {
+                                                          return Container(
+                                                            color: Colors
+                                                                .grey[200],
+                                                            child: Icon(
+                                                              Icons
+                                                                  .broken_image,
+                                                              size: 20,
+                                                              color: Colors
+                                                                  .grey[400],
+                                                            ),
+                                                          );
+                                                        },
+                                                    loadingBuilder:
+                                                        (
+                                                          context,
+                                                          child,
+                                                          loadingProgress,
+                                                        ) {
+                                                          if (loadingProgress ==
+                                                              null)
+                                                            return child;
+                                                          return Container(
+                                                            color: Colors
+                                                                .grey[100],
+                                                            child: Center(
+                                                              child: CircularProgressIndicator(
+                                                                strokeWidth: 2,
+                                                                value:
+                                                                    loadingProgress
+                                                                            .expectedTotalBytes !=
+                                                                        null
+                                                                    ? loadingProgress
+                                                                              .cumulativeBytesLoaded /
+                                                                          loadingProgress
+                                                                              .expectedTotalBytes!
+                                                                    : null,
+                                                                valueColor:
+                                                                    AlwaysStoppedAnimation<
+                                                                      Color
+                                                                    >(
+                                                                      Colors
+                                                                          .blue[400]!,
+                                                                    ),
+                                                              ),
+                                                            ),
+                                                          );
+                                                        },
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+
+                                  const SizedBox(height: 12),
+
                                   // Footer
                                   Row(
                                     mainAxisAlignment:
@@ -334,6 +485,22 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final result = await Navigator.of(
+            context,
+          ).pushNamed('/journal-entry');
+          // Refresh data if a new journal was created
+          if (result == true) {
+            _fetchData();
+          }
+        },
+        backgroundColor: Colors.blue[600],
+        foregroundColor: Colors.white,
+        elevation: 4,
+        child: const Icon(Icons.add),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }

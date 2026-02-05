@@ -72,6 +72,17 @@ class TokenService {
     }
   }
 
+  // Clear only access token (for 401 handling)
+  static Future<void> clearAccessToken() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_accessTokenKey);
+      print('Access token cleared successfully');
+    } catch (e) {
+      print('Error clearing access token: $e');
+    }
+  }
+
   // Get current token for API calls
   static Future<String> getCurrentToken() async {
     // Try access token first, then auth token

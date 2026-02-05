@@ -1,8 +1,82 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'token_service.dart';
 
 class ApiService {
   static const String baseUrl = 'https://new-my-journals.vercel.app';
+
+  // Handle 401 Unauthorized responses
+  static Future<void> _handleUnauthorized() async {
+    print('Handling 401 Unauthorized - clearing access token only');
+    await TokenService.clearAccessToken();
+    // Note: The page reload will be handled by the calling method
+  }
+
+  // Handle 401 for login token (clear both tokens)
+  static Future<void> _handleLoginUnauthorized() async {
+    print('Handling 401 Unauthorized - clearing all tokens');
+    await TokenService.clearTokens();
+    // Note: The page reload will be handled by the calling method
+  }
+
+  // Check if user has PIN
+  static Future<Map<String, dynamic>> hasPin(String token) async {
+    try {
+      print('Checking if user has PIN with token: $token');
+
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/pin/has-pin'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+              'User-Agent': 'Notevia-Flutter-App',
+            },
+          )
+          .timeout(const Duration(seconds: 15));
+
+      print('Has PIN response status: ${response.statusCode}');
+      print('Has PIN response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': 'PIN status checked successfully',
+          'data': jsonDecode(response.body),
+        };
+      } else if (response.statusCode == 401) {
+        await _handleLoginUnauthorized();
+        return {
+          'success': false,
+          'message': 'Authentication expired. Please login again.',
+          'requires_login_redirect': true,
+        };
+      } else {
+        return {
+          'success': false,
+          'message':
+              jsonDecode(response.body)['message'] ??
+              'Failed to check PIN status',
+          'error': response.body,
+        };
+      }
+    } on http.ClientException catch (e) {
+      print('Has PIN ClientException: ${e.toString()}');
+      return {
+        'success': false,
+        'message': 'Connection failed while checking PIN status',
+        'error': e.toString(),
+      };
+    } catch (e) {
+      print('Has PIN error: ${e.toString()}');
+      return {
+        'success': false,
+        'message': 'PIN status check error: ${e.toString()}',
+      };
+    }
+  }
 
   // Test method to check API connectivity
   static Future<Map<String, dynamic>> testConnection() async {
@@ -338,6 +412,13 @@ class ApiService {
           'message': 'Journals fetched successfully',
           'data': jsonDecode(response.body),
         };
+      } else if (response.statusCode == 401) {
+        await _handleUnauthorized();
+        return {
+          'success': false,
+          'message': 'Authentication expired. Please login again.',
+          'requires_auth_redirect': true,
+        };
       } else {
         return {
           'success': false,
@@ -387,6 +468,13 @@ class ApiService {
           'success': true,
           'message': 'Profile fetched successfully',
           'data': jsonDecode(response.body),
+        };
+      } else if (response.statusCode == 401) {
+        await _handleUnauthorized();
+        return {
+          'success': false,
+          'message': 'Authentication expired. Please login again.',
+          'requires_auth_redirect': true,
         };
       } else {
         return {
@@ -440,6 +528,13 @@ class ApiService {
           'message': 'Journal fetched successfully',
           'data': jsonDecode(response.body),
         };
+      } else if (response.statusCode == 401) {
+        await _handleUnauthorized();
+        return {
+          'success': false,
+          'message': 'Authentication expired. Please login again.',
+          'requires_auth_redirect': true,
+        };
       } else {
         return {
           'success': false,
@@ -460,6 +555,127 @@ class ApiService {
       return {
         'success': false,
         'message': 'Journal fetch error: ${e.toString()}',
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> createJournal(
+    String token,
+    String title,
+    String content,
+    String date, {
+    List<File>? imageFiles,
+  }) async {
+    try {
+      print('Creating journal with token: $token');
+
+      // Create multipart request for file upload
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/journals'),
+      );
+
+      // Add headers
+      request.headers.addAll({
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+        'User-Agent': 'Notevia-Flutter-App',
+      });
+
+      // Add form fields with exact field names
+      request.fields['title'] = title;
+      request.fields['content'] = content;
+      request.fields['journalDate'] = date; // Exact field name as specified
+
+      // Add multiple image files if provided
+      if (imageFiles != null && imageFiles.isNotEmpty) {
+        print('Adding ${imageFiles.length} image files to request');
+        for (var i = 0; i < imageFiles.length; i++) {
+          var imageFile = imageFiles[i];
+          print('Processing image $i: ${imageFile.path}');
+
+          // Check if file exists
+          if (!await imageFile.exists()) {
+            print('ERROR: Image file does not exist: ${imageFile.path}');
+            continue;
+          }
+
+          try {
+            var imageStream = http.ByteStream(imageFile.openRead());
+            var imageLength = await imageFile.length();
+            print('Image size: $imageLength bytes');
+
+            var multipartFile = http.MultipartFile(
+              'files', // Field name for multiple files
+              imageStream,
+              imageLength,
+              filename: imageFile.path.split('/').last,
+            );
+            request.files.add(multipartFile);
+            print('Successfully added image $i to request');
+          } catch (e) {
+            print('ERROR adding image $i: $e');
+          }
+        }
+        print('Total files in request: ${request.files.length}');
+      } else {
+        print('No image files provided');
+      }
+
+      // Log request details before sending
+      print('--- Request Details ---');
+      print('URL: ${request.url}');
+      print('Method: ${request.method}');
+      print('Headers: ${request.headers}');
+      print('Fields: ${request.fields}');
+      print('Files count: ${request.files.length}');
+      for (var file in request.files) {
+        print('File: ${file.field} - ${file.filename}');
+      }
+      print('--- End Request Details ---');
+
+      // Send request
+      var streamedResponse = await request.send().timeout(
+        const Duration(seconds: 30),
+      );
+      var response = await http.Response.fromStream(streamedResponse);
+
+      print('Create journal response status: ${response.statusCode}');
+      print('Create journal response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': 'Journal created successfully',
+          'data': jsonDecode(response.body),
+        };
+      } else if (response.statusCode == 401) {
+        await _handleUnauthorized();
+        return {
+          'success': false,
+          'message': 'Authentication expired. Please login again.',
+          'requires_auth_redirect': true,
+        };
+      } else {
+        return {
+          'success': false,
+          'message':
+              jsonDecode(response.body)['message'] ?? 'Journal creation failed',
+          'error': response.body,
+        };
+      }
+    } on http.ClientException catch (e) {
+      print('Create journal ClientException: ${e.toString()}');
+      return {
+        'success': false,
+        'message': 'Connection failed while creating journal',
+        'error': e.toString(),
+      };
+    } catch (e) {
+      print('Create journal error: ${e.toString()}');
+      return {
+        'success': false,
+        'message': 'Journal creation error: ${e.toString()}',
       };
     }
   }

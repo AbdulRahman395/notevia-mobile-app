@@ -21,6 +21,33 @@ class _PinVerificationPageState extends State<PinVerificationPage> {
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    _checkPinStatus();
+  }
+
+  Future<void> _checkPinStatus() async {
+    try {
+      final result = await ApiService.hasPin(widget.token);
+
+      if (result['requires_login_redirect'] == true) {
+        if (mounted) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/signin', (Route<dynamic> route) => false);
+        }
+        return;
+      }
+
+      if (!result['success']) {
+        print('Failed to check PIN status: ${result['message']}');
+      }
+    } catch (e) {
+      print('Error checking PIN status: $e');
+    }
+  }
+
+  @override
   void dispose() {
     for (var controller in _controllers) {
       controller.dispose();
@@ -126,174 +153,197 @@ class _PinVerificationPageState extends State<PinVerificationPage> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 40),
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight:
+                  MediaQuery.of(context).size.height -
+                  MediaQuery.of(context).padding.top -
+                  MediaQuery.of(context).padding.bottom,
+            ),
+            child: IntrinsicHeight(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 20),
 
-              // Icon
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(Icons.lock, size: 40, color: Colors.blue[600]),
-              ),
+                    // Icon
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        Icons.lock,
+                        size: 40,
+                        color: Colors.blue[600],
+                      ),
+                    ),
 
-              const SizedBox(height: 30),
+                    const SizedBox(height: 20),
 
-              // Title
-              const Text(
-                'Enter PIN',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 15),
-
-              // Subtitle
-              Text(
-                'Enter your 4-digit PIN to access your account',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white.withOpacity(0.9),
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 50),
-
-              // PIN Input Fields
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(4, (index) {
-                  return SizedBox(
-                    width: 50,
-                    height: 60,
-                    child: TextFormField(
-                      controller: _controllers[index],
-                      focusNode: _focusNodes[index],
-                      textAlign: TextAlign.center,
-                      keyboardType: TextInputType.number,
-                      maxLength: 1,
-                      obscureText: true,
-                      style: const TextStyle(
+                    // Title
+                    const Text(
+                      'Enter PIN',
+                      style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
-                      decoration: InputDecoration(
-                        counterText: '',
-                        filled: true,
-                        fillColor: Colors.white.withOpacity(0.2),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: Colors.white.withOpacity(0.3),
-                            width: 1,
+                      textAlign: TextAlign.center,
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // Subtitle
+                    Text(
+                      'Enter your 4-digit PIN to access your account',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white.withOpacity(0.9),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    // PIN Input Fields
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: List.generate(4, (index) {
+                        return SizedBox(
+                          width: 50,
+                          height: 60,
+                          child: TextFormField(
+                            controller: _controllers[index],
+                            focusNode: _focusNodes[index],
+                            textAlign: TextAlign.center,
+                            keyboardType: TextInputType.number,
+                            maxLength: 1,
+                            obscureText: true,
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                            decoration: InputDecoration(
+                              counterText: '',
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.2),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.white.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            onChanged: (value) {
+                              _onTextChanged(value, index);
+                            },
                           ),
+                        );
+                      }),
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    // Verify PIN Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _verifyPIN,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.blue[600],
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Colors.white,
-                            width: 2,
+                        child: _isLoading
+                            ? const CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.blue,
+                                ),
+                              )
+                            : const Text(
+                                'Verify PIN',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Forgot PIN
+                    Center(
+                      child: TextButton(
+                        onPressed: () {
+                          // TODO: Implement forgot PIN functionality
+                          _showError(
+                            'Forgot PIN functionality not implemented yet',
+                          );
+                        },
+                        child: Text(
+                          'Forgot PIN?',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            decoration: TextDecoration.underline,
                           ),
                         ),
                       ),
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      onChanged: (value) {
-                        _onTextChanged(value, index);
-                      },
                     ),
-                  );
-                }),
-              ),
 
-              const SizedBox(height: 40),
+                    const SizedBox(height: 10),
 
-              // Verify PIN Button
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _verifyPIN,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.blue[600],
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 2,
-                  ),
-                  child: _isLoading
-                      ? const CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.blue,
-                          ),
-                        )
-                      : const Text(
-                          'Verify PIN',
+                    // Create PIN
+                    Center(
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pushReplacementNamed(
+                            '/create-pin',
+                            arguments: widget.token,
+                          );
+                        },
+                        child: Text(
+                          'Create New PIN',
                           style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                            color: Colors.white.withOpacity(0.9),
+                            decoration: TextDecoration.underline,
                           ),
                         ),
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              // Forgot PIN
-              Center(
-                child: TextButton(
-                  onPressed: () {
-                    // TODO: Implement forgot PIN functionality
-                    _showError('Forgot PIN functionality not implemented yet');
-                  },
-                  child: Text(
-                    'Forgot PIN?',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
-                      decoration: TextDecoration.underline,
+                      ),
                     ),
-                  ),
+
+                    // Add flexible space at the bottom
+                    const Spacer(),
+                  ],
                 ),
               ),
-
-              const SizedBox(height: 20),
-
-              // Create PIN
-              Center(
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pushReplacementNamed(
-                      '/create-pin',
-                      arguments: widget.token,
-                    );
-                  },
-                  child: Text(
-                    'Create New PIN',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
