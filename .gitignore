@@ -1,45 +1,49 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
+# Generic files to ignore
 .DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
-
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
 .dart_tool/
+.idea/
+.packages
+.flutter-plugins
 .flutter-plugins-dependencies
-.pub-cache/
-.pub/
-/build/
-/coverage/
+.generated/
 
-# Symbolication related
-app.*.symbols
+# Build artifacts
+build/
+*/*.iml
+# If you committed build artifacts by mistake, uncomment the next line and run "git rm -r --cached build"
+# build/
 
-# Obfuscation related
-app.*.map.json
+# Platform-specific files
+# Android
+android/.gradle/
+android/captures/
+android/local.properties
+/android/key.properties
+/android/keystore.jks
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# iOS
+ios/.symlinks/
+ios/Flutter/Generated.xcconfig
+
+# Linux
+linux/build/
+
+# macOS
+macos/build/
+macos/Flutter/Generated.xcconfig
+
+# Windows
+windows/build/
+
+# Web (if using web specific tools that generate extra files)
+# web/deploy/
+
+# Crashlytics/Fabric
+# *.dSYM
+# appboy-bridge.zip
+
+# VS Code
+.vscode/launch.json
+
+# If you want to ignore the lock file (generally not recommended for apps)
+# pubspec.lock
