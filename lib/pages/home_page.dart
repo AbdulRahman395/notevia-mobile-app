@@ -25,7 +25,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   int _currentPage = 1;
   int _totalPages = 1;
   int _totalJournals = 0;
-  final int _itemsPerPage = 2;
+  final int _itemsPerPage = 10;
 
   @override
   void initState() {

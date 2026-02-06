@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:pin_code_fields/pin_code_fields.dart';
 import '../services/api_service.dart';
 import '../services/token_service.dart';
 
@@ -13,11 +14,7 @@ class PinVerificationPage extends StatefulWidget {
 }
 
 class _PinVerificationPageState extends State<PinVerificationPage> {
-  final List<TextEditingController> _controllers = List.generate(
-    4,
-    (index) => TextEditingController(),
-  );
-  final List<FocusNode> _focusNodes = List.generate(4, (index) => FocusNode());
+  final TextEditingController _pinController = TextEditingController();
   bool _isLoading = false;
 
   @override
@@ -49,31 +46,12 @@ class _PinVerificationPageState extends State<PinVerificationPage> {
 
   @override
   void dispose() {
-    for (var controller in _controllers) {
-      controller.dispose();
-    }
-    for (var focusNode in _focusNodes) {
-      focusNode.dispose();
-    }
+    _pinController.dispose();
     super.dispose();
   }
 
-  void _onTextChanged(String value, int index) {
-    if (value.isNotEmpty && index < 3) {
-      _focusNodes[index].unfocus();
-      FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
-    } else if (value.isEmpty && index > 0) {
-      _focusNodes[index].unfocus();
-      FocusScope.of(context).requestFocus(_focusNodes[index - 1]);
-    }
-  }
-
-  String _getPIN() {
-    return _controllers.map((controller) => controller.text).join();
-  }
-
   void _verifyPIN() async {
-    final pin = _getPIN();
+    final pin = _pinController.text;
     if (pin.length != 4) {
       _showError('Please enter all 4 digits');
       return;
@@ -212,57 +190,42 @@ class _PinVerificationPageState extends State<PinVerificationPage> {
                     const SizedBox(height: 30),
 
                     // PIN Input Fields
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: List.generate(4, (index) {
-                        return SizedBox(
-                          width: 60,
-                          height: 60,
-                          child: TextFormField(
-                            controller: _controllers[index],
-                            focusNode: _focusNodes[index],
-                            textAlign: TextAlign.center,
-                            keyboardType: TextInputType.number,
-                            maxLength: 1,
-                            obscureText: true,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                            decoration: InputDecoration(
-                              counterText: '',
-                              filled: true,
-                              fillColor: Colors.white.withOpacity(0.2),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none,
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: Colors.white.withOpacity(0.3),
-                                  width: 1,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: Colors.white,
-                                  width: 2,
-                                ),
-                              ),
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
-                            onChanged: (value) {
-                              _onTextChanged(value, index);
-                            },
-                          ),
-                        );
-                      }),
+                    PinCodeTextField(
+                      appContext: context,
+                      controller: _pinController,
+                      length: 4,
+                      obscureText: true,
+                      obscuringCharacter: '●',
+                      blinkWhenObscuring: true,
+                      animationType: AnimationType.fade,
+                      keyboardType: TextInputType.number,
+                      pinTheme: PinTheme(
+                        shape: PinCodeFieldShape.box,
+                        borderRadius: BorderRadius.circular(12),
+                        fieldHeight: 60,
+                        fieldWidth: 60,
+                        activeFillColor: Colors.white.withOpacity(0.3),
+                        selectedFillColor: Colors.white.withOpacity(0.4),
+                        inactiveFillColor: Colors.white.withOpacity(0.2),
+                        activeColor: Colors.white,
+                        selectedColor: Colors.white,
+                        inactiveColor: Colors.white.withOpacity(0.5),
+                        borderWidth: 2,
+                      ),
+                      enableActiveFill: true,
+                      textStyle: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      cursorColor: Colors.white,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      onCompleted: (pin) {
+                        _verifyPIN();
+                      },
+                      onChanged: (value) {
+                        // Optional: Handle real-time changes if needed
+                      },
                     ),
 
                     const SizedBox(height: 30),
