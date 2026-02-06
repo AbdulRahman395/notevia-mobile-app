@@ -216,7 +216,7 @@ class _PinVerificationPageState extends State<PinVerificationPage> {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: List.generate(4, (index) {
                         return SizedBox(
-                          width: 50,
+                          width: 60,
                           height: 60,
                           child: TextFormField(
                             controller: _controllers[index],
@@ -226,7 +226,7 @@ class _PinVerificationPageState extends State<PinVerificationPage> {
                             maxLength: 1,
                             obscureText: true,
                             style: const TextStyle(
-                              fontSize: 28,
+                              fontSize: 24,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
@@ -252,6 +252,7 @@ class _PinVerificationPageState extends State<PinVerificationPage> {
                                   width: 2,
                                 ),
                               ),
+                              contentPadding: EdgeInsets.zero,
                             ),
                             inputFormatters: [
                               FilteringTextInputFormatter.digitsOnly,

@@ -21,6 +21,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   final ThemeService _themeService = ThemeService();
   final FocusNode _searchFocusNode = FocusNode();
 
+  // Pagination variables
+  int _currentPage = 1;
+  int _totalPages = 1;
+  int _totalJournals = 0;
+  final int _itemsPerPage = 2;
+
   @override
   void initState() {
     super.initState();
@@ -53,7 +59,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _fetchData() async {
+  Future<void> _fetchData({int page = 1}) async {
     setState(() {
       _isLoading = true;
       _hasError = false;
@@ -65,13 +71,32 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         throw Exception('No authentication token found');
       }
 
-      final journalsResult = await ApiService.getJournals(token);
+      final journalsResult = await ApiService.getJournals(
+        token,
+        page: page,
+        limit: _itemsPerPage,
+      );
       final profileResult = await ApiService.getProfile(token);
 
       if (mounted) {
         setState(() {
           if (journalsResult['success']) {
-            _journals = journalsResult['data']['data'] ?? [];
+            final data = journalsResult['data'];
+            final pagination = journalsResult['pagination'];
+            print('API Response: $journalsResult');
+            print('Number of journals returned: ${data?.length ?? 0}');
+            print('Pagination info: $pagination');
+
+            _journals = data ?? [];
+            _currentPage = pagination?['page'] ?? 1;
+            _totalPages = pagination?['totalPages'] ?? 1;
+            _totalJournals = pagination?['total'] ?? 0;
+
+            // Debug logging
+            print(
+              'Pagination debug - Current page: $_currentPage, Total pages: $_totalPages, Total journals: $_totalJournals',
+            );
+            print('Journals count: ${_journals.length}');
           } else if (journalsResult['requires_auth_redirect'] == true) {
             // Handle 401 - redirect to PIN verification with auth token
             () async {
@@ -311,7 +336,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             ),
                             const SizedBox(height: 24),
                             ElevatedButton(
-                              onPressed: _fetchData,
+                              onPressed: () => _fetchData(page: _currentPage),
                               child: const Text('Try Again'),
                             ),
                           ],
@@ -352,7 +377,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         ),
                       )
                     : RefreshIndicator(
-                        onRefresh: _fetchData,
+                        onRefresh: () => _fetchData(page: _currentPage),
                         child: ListView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: 20.0),
                           itemCount: _journals.length,
@@ -588,7 +613,161 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       ),
               ),
             ),
+
+            // Pagination
+            if (_totalPages > 1) _buildPagination(),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPagination() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Previous button
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.grey[300]!),
+                  color: _currentPage > 1
+                      ? Colors.transparent
+                      : Colors.grey[100],
+                ),
+                child: IconButton(
+                  onPressed: _currentPage > 1
+                      ? () => _fetchData(page: _currentPage - 1)
+                      : null,
+                  icon: const Icon(Icons.chevron_left, size: 16),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                  style: IconButton.styleFrom(
+                    foregroundColor: _currentPage > 1
+                        ? Colors.grey[700]
+                        : Colors.grey[400],
+                  ),
+                ),
+              ),
+
+              // Page numbers (show only 3 pages as requested)
+              ..._getPageNumbers().map((pageNum) => _buildPageButton(pageNum)),
+
+              // Next button
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.grey[300]!),
+                  color: _currentPage < _totalPages
+                      ? Colors.transparent
+                      : Colors.grey[100],
+                ),
+                child: IconButton(
+                  onPressed: _currentPage < _totalPages
+                      ? () => _fetchData(page: _currentPage + 1)
+                      : null,
+                  icon: const Icon(Icons.chevron_right, size: 16),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                  style: IconButton.styleFrom(
+                    foregroundColor: _currentPage < _totalPages
+                        ? Colors.grey[700]
+                        : Colors.grey[400],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Showing ${_journals.length} of $_totalJournals journals',
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<int> _getPageNumbers() {
+    List<int> pages = [];
+
+    if (_totalPages <= 3) {
+      // Show all pages if total is 3 or less
+      for (int i = 1; i <= _totalPages; i++) {
+        pages.add(i);
+      }
+    } else {
+      // Show only 3 pages with current page in the middle when possible
+      if (_currentPage == 1) {
+        pages = [1, 2, 3];
+      } else if (_currentPage == _totalPages) {
+        pages = [_totalPages - 2, _totalPages - 1, _totalPages];
+      } else {
+        pages = [_currentPage - 1, _currentPage, _currentPage + 1];
+      }
+    }
+
+    return pages;
+  }
+
+  Widget _buildPageButton(int pageNum) {
+    final bool isSelected = pageNum == _currentPage;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isSelected ? Colors.transparent : Colors.transparent,
+        ),
+        child: InkWell(
+          onTap: () => _fetchData(page: pageNum),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Center(
+              child: Text(
+                pageNum.toString(),
+                style: TextStyle(
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.grey[700],
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  fontSize: 14,
+                  decoration: isSelected
+                      ? TextDecoration.underline
+                      : TextDecoration.none,
+                  decorationColor: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.transparent,
+                  decorationThickness: 2,
+                  decorationStyle: TextDecorationStyle.solid,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

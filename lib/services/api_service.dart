@@ -407,10 +407,12 @@ class ApiService {
       print('Journals response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = jsonDecode(response.body);
         return {
           'success': true,
           'message': 'Journals fetched successfully',
-          'data': jsonDecode(response.body),
+          'data': responseData['data'] ?? [],
+          'pagination': responseData['pagination'] ?? {},
         };
       } else if (response.statusCode == 401) {
         await _handleUnauthorized();
