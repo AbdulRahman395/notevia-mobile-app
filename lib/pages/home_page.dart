@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
+import 'dart:async';
 import '../services/api_service.dart';
 import '../services/token_service.dart';
 import '../services/theme_service.dart';
@@ -20,6 +21,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   String _errorMessage = '';
   final ThemeService _themeService = ThemeService();
   final FocusNode _searchFocusNode = FocusNode();
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  Timer? _searchDebounce;
 
   // Pagination variables
   int _currentPage = 1;
@@ -41,6 +45,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _themeService.removeListener(_onThemeChanged);
     _searchFocusNode.dispose();
+    _searchController.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
   }
 
@@ -48,6 +54,28 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     if (mounted) {
       setState(() {});
     }
+  }
+
+  void _onSearchChanged(String query) {
+    setState(() {
+      _searchQuery = query;
+      _currentPage = 1; // Reset to first page when searching
+    });
+
+    // Cancel previous timer
+    _searchDebounce?.cancel();
+
+    // Set new timer to trigger search after 500ms delay
+    _searchDebounce = Timer(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        _fetchData(search: query.isEmpty ? null : query);
+      }
+    });
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    _onSearchChanged('');
   }
 
   @override
@@ -59,7 +87,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _fetchData({int page = 1}) async {
+  Future<void> _fetchData({int page = 1, String? search}) async {
     setState(() {
       _isLoading = true;
       _hasError = false;
@@ -75,6 +103,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         token,
         page: page,
         limit: _itemsPerPage,
+        search: search,
       );
       final profileResult = await ApiService.getProfile(token);
 
@@ -259,6 +288,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   border: Border.all(color: Colors.grey[300]!, width: 1),
                 ),
                 child: TextField(
+                  controller: _searchController,
                   focusNode: _searchFocusNode,
                   decoration: InputDecoration(
                     hintText: 'Search journals...',
@@ -275,6 +305,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       ).colorScheme.onSurface.withOpacity(0.6),
                       size: 20,
                     ),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(
+                              Icons.clear,
+                              size: 18,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.6),
+                            ),
+                            onPressed: _clearSearch,
+                          )
+                        : null,
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -286,7 +328,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     fontSize: 16,
                   ),
                   onChanged: (value) {
-                    // TODO: Implement search functionality
+                    _onSearchChanged(value);
                   },
                 ),
               ),
@@ -617,6 +659,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             // Pagination
             if (_totalPages > 1) _buildPagination(),
           ],
+        ),
+      ),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 70.0, right: 10),
+        child: FloatingActionButton(
+          onPressed: () {
+            Navigator.of(context).pushNamed('/journal-entry');
+          },
+          backgroundColor: Colors.blue[400],
+          child: const Icon(Icons.add, color: Colors.white, size: 28),
         ),
       ),
     );

@@ -387,13 +387,19 @@ class ApiService {
     String token, {
     int page = 1,
     int limit = 10,
+    String? search,
   }) async {
     try {
-      print('Fetching journals with token: $token');
+      print('Fetching journals with token: $token, search: $search');
+
+      String url = '$baseUrl/journals?page=$page&limit=$limit';
+      if (search != null && search.isNotEmpty) {
+        url += '&search=$search';
+      }
 
       final response = await http
           .get(
-            Uri.parse('$baseUrl/journals?page=$page&limit=$limit'),
+            Uri.parse(url),
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
