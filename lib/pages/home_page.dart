@@ -193,6 +193,21 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     ),
                   ),
                   const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.lock, size: 20),
+                    onPressed: () async {
+                      await TokenService.clearAccessToken();
+                      if (mounted) {
+                        final authToken = await TokenService.getAuthToken();
+                        Navigator.of(context).pushNamedAndRemoveUntil(
+                          '/pin-verification',
+                          (Route<dynamic> route) => false,
+                          arguments: authToken,
+                        );
+                      }
+                    },
+                    tooltip: 'Lock',
+                  ),
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_vert),
                     position: PopupMenuPosition.under,
