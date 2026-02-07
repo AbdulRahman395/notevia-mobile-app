@@ -422,8 +422,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         onRefresh: () => _fetchData(page: _currentPage),
                         child: ListView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                          itemCount: _journals.length,
+                          itemCount:
+                              _journals.length + (_totalPages > 1 ? 1 : 0),
                           itemBuilder: (context, index) {
+                            // Show pagination as the last item
+                            if (index == _journals.length && _totalPages > 1) {
+                              return _buildPagination();
+                            }
                             final journal = _journals[index];
                             return GestureDetector(
                               onTap: () {
@@ -655,14 +660,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       ),
               ),
             ),
-
-            // Pagination
-            if (_totalPages > 1) _buildPagination(),
           ],
         ),
       ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 70.0, right: 10),
+        padding: const EdgeInsets.only(bottom: 20.0, right: 10),
         child: FloatingActionButton(
           onPressed: () {
             Navigator.of(context).pushNamed('/journal-entry');
