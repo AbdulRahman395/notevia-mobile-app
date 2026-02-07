@@ -7,6 +7,37 @@ import 'dart:io';
 import '../services/api_service.dart';
 import '../services/token_service.dart';
 
+class UpperCaseFirstLetterFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+
+    // If the text is being typed from the beginning, capitalize the first letter
+    if (newValue.selection.start == 0 && newValue.text.length == 1) {
+      return TextEditingValue(
+        text: newValue.text.toUpperCase(),
+        selection: newValue.selection,
+      );
+    }
+
+    // If the entire text is selected and user starts typing, capitalize first letter
+    if (oldValue.selection.start == 0 &&
+        oldValue.selection.end == oldValue.text.length) {
+      return TextEditingValue(
+        text: newValue.text[0].toUpperCase() + newValue.text.substring(1),
+        selection: newValue.selection,
+      );
+    }
+
+    return newValue;
+  }
+}
+
 class JournalEntryPage extends StatefulWidget {
   const JournalEntryPage({super.key});
 
@@ -283,18 +314,23 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
-                      color: Theme.of(context).dividerColor,
+                      color: Colors.grey[300]!,
+                      width: 1.0,
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
-                      color: Theme.of(context).dividerColor,
+                      color: Colors.grey[300]!,
+                      width: 1.0,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.blue),
+                    borderSide: BorderSide(
+                      color: Colors.blue[400]!,
+                      width: 2.0,
+                    ),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -302,6 +338,8 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                   ),
                 ),
                 textInputAction: TextInputAction.next,
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: [UpperCaseFirstLetterFormatter()],
               ),
 
               const SizedBox(height: 24),
@@ -320,7 +358,7 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Theme.of(context).dividerColor),
+                  border: Border.all(color: Colors.grey[300]!, width: 1.0),
                 ),
                 child: Column(
                   children: [
@@ -488,24 +526,31 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
-                      color: Theme.of(context).dividerColor,
+                      color: Colors.grey[300]!,
+                      width: 1.0,
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
-                      color: Theme.of(context).dividerColor,
+                      color: Colors.grey[300]!,
+                      width: 1.0,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.blue),
+                    borderSide: BorderSide(
+                      color: Colors.blue[400]!,
+                      width: 2.0,
+                    ),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 12,
                   ),
                 ),
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: [UpperCaseFirstLetterFormatter()],
               ),
 
               const SizedBox(height: 24),
@@ -536,7 +581,8 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: Theme.of(context).dividerColor,
+                                color: Colors.grey[300]!,
+                                width: 1.0,
                               ),
                             ),
                             child: Stack(
@@ -590,7 +636,8 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                           color: Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Theme.of(context).dividerColor,
+                            color: Colors.grey[300]!,
+                            width: 1.0,
                             style: BorderStyle.solid,
                           ),
                         ),
@@ -631,7 +678,8 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                       color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Theme.of(context).dividerColor,
+                        color: Colors.grey[300]!,
+                        width: 1.0,
                         style: BorderStyle.solid,
                       ),
                     ),
