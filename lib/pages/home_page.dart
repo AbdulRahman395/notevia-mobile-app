@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_html/flutter_html.dart';
 import 'dart:async';
 import '../services/api_service.dart';
 import '../services/token_service.dart';
-import '../services/theme_service.dart';
 import '../widgets/full_screen_image_viewer.dart';
 
 class HomePage extends StatefulWidget {
@@ -15,11 +13,9 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   List<dynamic> _journals = [];
-  Map<String, dynamic>? _profile;
   bool _isLoading = true;
   bool _hasError = false;
   String _errorMessage = '';
-  final ThemeService _themeService = ThemeService();
   final FocusNode _searchFocusNode = FocusNode();
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -35,25 +31,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _themeService.loadTheme();
-    _themeService.addListener(_onThemeChanged);
     _fetchData();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _themeService.removeListener(_onThemeChanged);
     _searchFocusNode.dispose();
     _searchController.dispose();
     _searchDebounce?.cancel();
     super.dispose();
-  }
-
-  void _onThemeChanged() {
-    if (mounted) {
-      setState(() {});
-    }
   }
 
   void _onSearchChanged(String query) {
@@ -105,7 +92,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         limit: _itemsPerPage,
         search: search,
       );
-      final profileResult = await ApiService.getProfile(token);
 
       if (mounted) {
         setState(() {
@@ -127,23 +113,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             );
             print('Journals count: ${_journals.length}');
           } else if (journalsResult['requires_auth_redirect'] == true) {
-            // Handle 401 - redirect to PIN verification with auth token
-            () async {
-              final authToken = await TokenService.getAuthToken();
-              if (authToken != null && mounted) {
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  '/pin-verification',
-                  (Route<dynamic> route) => false,
-                  arguments: authToken,
-                );
-              }
-            }();
-            return;
-          }
-
-          if (profileResult['success']) {
-            _profile = profileResult['data'];
-          } else if (profileResult['requires_auth_redirect'] == true) {
             // Handle 401 - redirect to PIN verification with auth token
             () async {
               final authToken = await TokenService.getAuthToken();
@@ -210,68 +179,49 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       body: SafeArea(
         child: Column(
           children: [
-            // Profile Header
+            // App Header
             Container(
               padding: const EdgeInsets.all(20.0),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: Colors.blue[400],
-                    backgroundImage: _profile?['profile_picture'] != null
-                        ? NetworkImage(_profile!['profile_picture'])
-                        : null,
-                    child: _profile?['profile_picture'] == null
-                        ? const Icon(
-                            Icons.person,
-                            size: 30,
-                            color: Colors.white,
-                          )
-                        : null,
+                  Text(
+                    'Notevia',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue[400],
+                    ),
                   ),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Welcome back!',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Theme.of(
+                  const Spacer(),
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert),
+                    position: PopupMenuPosition.under,
+                    elevation: 3.0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    constraints: const BoxConstraints(minWidth: 160),
+                    onSelected: (String value) {
+                      if (value == 'logout') {
+                        TokenService.clearTokens().then((_) {
+                          if (mounted) {
+                            Navigator.of(
                               context,
-                            ).colorScheme.onSurface.withOpacity(0.6),
-                          ),
-                        ),
-                        Text(
-                          '${_profile?['first_name'] ?? 'John'} ${_profile?['last_name'] ?? 'Doe'}',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: () async {
-                      await _themeService.toggleTheme();
-                    },
-                    icon: Icon(
-                      _themeService.isDarkMode
-                          ? Icons.light_mode
-                          : Icons.dark_mode,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () async {
-                      await TokenService.clearTokens();
-                      if (mounted) {
-                        Navigator.of(context).pushReplacementNamed('/signin');
+                            ).pushReplacementNamed('/signin');
+                          }
+                        });
                       }
                     },
-                    icon: const Icon(Icons.logout),
+                    itemBuilder: (BuildContext context) => [
+                      const PopupMenuItem<String>(
+                        value: 'settings',
+                        child: Text('Settings'),
+                      ),
+                      const PopupMenuItem<String>(
+                        value: 'logout',
+                        child: Text('Logout'),
+                      ),
+                    ],
                   ),
                 ],
               ),
