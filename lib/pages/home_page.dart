@@ -28,11 +28,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   int _totalJournals = 0;
   final int _itemsPerPage = 10;
 
+  // Dashboard data
+  int _writingStreak = 0;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _fetchData();
+    _fetchDashboardData();
   }
 
   @override
@@ -64,6 +68,32 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void _clearSearch() {
     _searchController.clear();
     _onSearchChanged('');
+  }
+
+  Future<void> _fetchDashboardData() async {
+    try {
+      final token = await TokenService.getCurrentToken();
+      if (token.isEmpty) {
+        print('No token found for dashboard fetch');
+        return;
+      }
+
+      final dashboardResult = await ApiService.getDashboard(token);
+      print('Dashboard result: $dashboardResult');
+
+      if (mounted && dashboardResult['success']) {
+        final data = dashboardResult['data'];
+        print('Dashboard data: $data');
+        setState(() {
+          _writingStreak = data['writingStreak'] ?? 0;
+          print('Writing streak set to: $_writingStreak');
+        });
+      } else {
+        print('Dashboard fetch failed: ${dashboardResult['message']}');
+      }
+    } catch (e) {
+      print('Error fetching dashboard data: ${e.toString()}');
+    }
   }
 
   @override
@@ -216,12 +246,46 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               padding: const EdgeInsets.all(20.0),
               child: Row(
                 children: [
-                  Text(
-                    'Notevia',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue[400],
+                  // Streak indicator like Duolingo
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _writingStreak > 0
+                          ? Colors.orange[50]
+                          : Colors.grey[100],
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _writingStreak > 0
+                            ? Colors.orange[300]!
+                            : Colors.grey[300]!,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.local_fire_department,
+                          color: _writingStreak > 0
+                              ? Colors.orange[500]
+                              : Colors.grey[400],
+                          size: 18,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$_writingStreak',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: _writingStreak > 0
+                                ? Colors.orange[700]
+                                : Colors.grey[500],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const Spacer(),
@@ -287,7 +351,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Container(
-                height: 50,
+                height: 45,
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(25),
@@ -301,8 +365,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     hintStyle: TextStyle(
                       color: Theme.of(
                         context,
-                      ).colorScheme.onSurface.withOpacity(0.5),
-                      fontSize: 16,
+                      ).colorScheme.onSurface.withValues(alpha: 0.5),
+                      fontSize: 14,
                     ),
                     prefixIcon: Icon(
                       Icons.search,

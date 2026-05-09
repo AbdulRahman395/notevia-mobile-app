@@ -919,4 +919,61 @@ class ApiService {
       return {'success': false, 'message': 'Heartbeat error: ${e.toString()}'};
     }
   }
+
+  static Future<Map<String, dynamic>> getDashboard(String token) async {
+    try {
+      print('Fetching dashboard with token: $token');
+
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/dashboard'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+              'User-Agent': 'Notevia-Flutter-App',
+            },
+          )
+          .timeout(const Duration(seconds: 15));
+
+      print('Dashboard response status: ${response.statusCode}');
+      print('Dashboard response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': 'Dashboard fetched successfully',
+          'data': jsonDecode(response.body),
+        };
+      } else if (response.statusCode == 401) {
+        await _handleUnauthorized();
+        return {
+          'success': false,
+          'message': 'Authentication expired. Please login again.',
+          'requires_auth_redirect': true,
+        };
+      } else {
+        return {
+          'success': false,
+          'message':
+              jsonDecode(response.body)['message'] ??
+              'Failed to fetch dashboard',
+          'error': response.body,
+        };
+      }
+    } on http.ClientException catch (e) {
+      print('Dashboard ClientException: ${e.toString()}');
+      return {
+        'success': false,
+        'message': 'Connection failed while fetching dashboard',
+        'error': e.toString(),
+      };
+    } catch (e) {
+      print('Dashboard error: ${e.toString()}');
+      return {
+        'success': false,
+        'message': 'Dashboard fetch error: ${e.toString()}',
+      };
+    }
+  }
 }
