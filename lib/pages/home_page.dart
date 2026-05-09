@@ -183,6 +183,22 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
   }
 
+  Color _getMoodBackgroundColor(String mood) {
+    print('Mood background called with: $mood'); // Debug line
+    switch (mood.toLowerCase()) {
+      case 'happy':
+        return const Color(0xFF81C784); // More vibrant green
+      case 'sad':
+        return const Color(0xFFE57373); // More vibrant red
+      case 'neutral':
+        return const Color(0xFF90A4AE); // More vibrant blue-grey
+      case 'calm':
+        return const Color(0xFF64B5F6); // More vibrant sky blue
+      default:
+        return Colors.amber[200]!; // More visible default color
+    }
+  }
+
   String _stripHtmlTags(String htmlText) {
     final RegExp exp = RegExp(r'<[^>]*>', multiLine: true, caseSensitive: true);
     return htmlText.replaceAll(exp, '').trim();
@@ -467,7 +483,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                           child: Text(
                                             journal['title'] ?? 'Untitled',
                                             style: const TextStyle(
-                                              fontSize: 18,
+                                              fontSize: 14,
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
@@ -490,7 +506,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                               journal['journal_date'],
                                             ),
                                             style: TextStyle(
-                                              fontSize: 12,
+                                              fontSize: 10,
                                               color: Theme.of(context)
                                                   .colorScheme
                                                   .onSurface
@@ -508,7 +524,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     Text(
                                       _stripHtmlTags(journal['content'] ?? ''),
                                       style: TextStyle(
-                                        fontSize: 14,
+                                        fontSize: 12,
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onSurface
@@ -524,7 +540,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                         journal['mood']
                                             .toString()
                                             .isNotEmpty) ...[
-                                      const SizedBox(height: 6),
+                                      const SizedBox(height: 4),
                                     ],
 
                                     const SizedBox(height: 8),
@@ -649,13 +665,25 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                             journal['mood']
                                                 .toString()
                                                 .isNotEmpty)
-                                          Text(
-                                            '${journal['mood']}: ${_getMoodEmoji(journal['mood'].toString())}',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              color:
-                                                  null, // Use default emoji colors
-                                              fontWeight: FontWeight.w500,
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: _getMoodBackgroundColor(
+                                                journal['mood'].toString(),
+                                              ).withOpacity(0.3),
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                            ),
+                                            child: Text(
+                                              '${journal['mood']}: ${_getMoodEmoji(journal['mood'].toString())}',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey[700]!,
+                                                fontWeight: FontWeight.w500,
+                                              ),
                                             ),
                                           ),
 

@@ -52,7 +52,7 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
   DateTime? _selectedDate;
   DateTime _focusedDay = DateTime.now();
   CalendarFormat _calendarFormat = CalendarFormat.month;
-  List<File> _selectedImages = [];
+  final List<File> _selectedImages = [];
   bool _isLoading = false;
   bool _showCalendar = false;
   String _selectedMood = '';
@@ -347,7 +347,7 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                   hintStyle: TextStyle(
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.4),
+                    ).colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
                   filled: true,
                   fillColor: Theme.of(context).cardColor,
@@ -429,9 +429,8 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                               style: TextStyle(
                                 color: _selectedDate != null
                                     ? Theme.of(context).colorScheme.onSurface
-                                    : Theme.of(
-                                        context,
-                                      ).colorScheme.onSurface.withOpacity(0.4),
+                                    : Theme.of(context).colorScheme.onSurface
+                                          .withValues(alpha: 0.4),
                                 fontSize: 16,
                               ),
                             ),
@@ -488,14 +487,14 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                             fontSize: 14,
                             color: Theme.of(
                               context,
-                            ).colorScheme.onSurface.withOpacity(0.7),
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
                             fontWeight: FontWeight.w500,
                           ),
                           weekendStyle: TextStyle(
                             fontSize: 14,
                             color: Theme.of(
                               context,
-                            ).colorScheme.onSurface.withOpacity(0.7),
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -520,7 +519,7 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                             fontSize: 16,
                             color: Theme.of(
                               context,
-                            ).colorScheme.onSurface.withOpacity(0.4),
+                            ).colorScheme.onSurface.withValues(alpha: 0.4),
                           ),
                           selectedTextStyle: const TextStyle(
                             fontSize: 16,
@@ -559,7 +558,7 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                   hintStyle: TextStyle(
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.4),
+                    ).colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
                   filled: true,
                   fillColor: Theme.of(context).cardColor,
@@ -611,8 +610,6 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                   double screenWidth = constraints.maxWidth;
                   double circleSize = screenWidth < 400 ? 60.0 : 70.0;
                   double spacing = screenWidth < 400 ? 8.0 : 12.0;
-                  double fontSize = screenWidth < 400 ? 20.0 : 24.0;
-                  double labelFontSize = screenWidth < 400 ? 10.0 : 12.0;
 
                   return Container(
                     padding: const EdgeInsets.all(16.0),
@@ -653,7 +650,7 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                 Column(
                   children: [
                     // Display selected images
-                    Container(
+                    SizedBox(
                       height: 200,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
@@ -733,7 +730,7 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                               size: 20,
                               color: Theme.of(
                                 context,
-                              ).colorScheme.onSurface.withOpacity(0.6),
+                              ).colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                             const SizedBox(width: 8),
                             Text(
@@ -741,7 +738,7 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                               style: TextStyle(
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.onSurface.withOpacity(0.6),
+                                ).colorScheme.onSurface.withValues(alpha: 0.6),
                                 fontSize: 14,
                               ),
                             ),
@@ -775,7 +772,7 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                           size: 48,
                           color: Theme.of(
                             context,
-                          ).colorScheme.onSurface.withOpacity(0.4),
+                          ).colorScheme.onSurface.withValues(alpha: 0.4),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -783,7 +780,7 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                           style: TextStyle(
                             color: Theme.of(
                               context,
-                            ).colorScheme.onSurface.withOpacity(0.6),
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
                             fontSize: 16,
                           ),
                         ),
@@ -793,7 +790,7 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                           style: TextStyle(
                             color: Theme.of(
                               context,
-                            ).colorScheme.onSurface.withOpacity(0.4),
+                            ).colorScheme.onSurface.withValues(alpha: 0.4),
                             fontSize: 12,
                           ),
                         ),

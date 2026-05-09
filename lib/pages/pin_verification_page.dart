@@ -87,11 +87,13 @@ class _PinVerificationPageState extends State<PinVerificationPage> {
           });
         } else {
           _showError(result['message']);
+          _pinController.clear();
         }
       }
     } catch (e) {
       if (mounted) {
         _showError('PIN verification failed: ${e.toString()}');
+        _pinController.clear();
       }
     }
   }

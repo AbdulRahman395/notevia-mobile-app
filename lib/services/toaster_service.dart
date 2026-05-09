@@ -103,7 +103,7 @@ class _ToasterWidgetState extends State<_ToasterWidget>
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      bottom: 25, // 25px gap from bottom
+      bottom: 50, // 50px gap from bottom
       left: 0,
       right: 0,
       child: Center(
