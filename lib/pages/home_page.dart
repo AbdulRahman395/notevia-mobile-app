@@ -678,7 +678,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                                   BorderRadius.circular(20),
                                             ),
                                             child: Text(
-                                              '${journal['mood']}: ${_getMoodEmoji(journal['mood'].toString())}',
+                                              '${journal['mood']} ${_getMoodEmoji(journal['mood'].toString())}',
                                               style: TextStyle(
                                                 fontSize: 12,
                                                 color: Colors.grey[700]!,
