@@ -13,9 +13,13 @@ class ToasterService {
       _hide();
     }
 
+    final mediaQueryData = MediaQuery.of(context);
+
     _overlayEntry = OverlayEntry(
-      builder: (context) =>
-          _ToasterWidget(message: message, type: type, onDismiss: _hide),
+      builder: (context) => MediaQuery(
+        data: mediaQueryData,
+        child: _ToasterWidget(message: message, type: type, onDismiss: _hide),
+      ),
     );
 
     Overlay.of(context).insert(_overlayEntry!);
@@ -102,8 +106,11 @@ class _ToasterWidgetState extends State<_ToasterWidget>
 
   @override
   Widget build(BuildContext context) {
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     return Positioned(
-      bottom: 50, // 50px gap from bottom
+      bottom: keyboardHeight > 0
+          ? keyboardHeight + 20
+          : 50, // Above keyboard or default position
       left: 0,
       right: 0,
       child: Center(

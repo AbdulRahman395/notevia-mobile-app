@@ -155,6 +155,21 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
     return normalized;
   }
 
+  Color _getMoodBackgroundColor(String mood) {
+    switch (mood.toLowerCase()) {
+      case 'happy':
+        return const Color(0xFF81C784); // More vibrant green
+      case 'sad':
+        return const Color(0xFFE57373); // More vibrant red
+      case 'neutral':
+        return const Color(0xFF90A4AE); // More vibrant blue-grey
+      case 'calm':
+        return const Color(0xFF64B5F6); // More vibrant sky blue
+      default:
+        return Colors.amber[200]!; // More visible default color
+    }
+  }
+
   Widget _buildMoodCircle(String moodName, String emoji, double circleSize) {
     final isSelected = _selectedMood == moodName;
     return GestureDetector(
@@ -168,9 +183,13 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
         height: circleSize,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: isSelected ? Colors.blue[100] : Colors.transparent,
+          color: isSelected
+              ? _getMoodBackgroundColor(moodName)
+              : _getMoodBackgroundColor(moodName).withOpacity(0.3),
           border: Border.all(
-            color: isSelected ? Colors.blue[400]! : Colors.grey[300]!,
+            color: isSelected
+                ? _getMoodBackgroundColor(moodName)
+                : Colors.grey[300]!,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -178,7 +197,7 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
           child: Text(
             emoji,
             style: TextStyle(
-              fontSize: circleSize * 0.6, // 60% of circle size
+              fontSize: circleSize * 0.4, // 40% of circle size (smaller emojis)
               color: null, // Use default emoji colors
             ),
           ),
