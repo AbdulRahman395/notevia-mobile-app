@@ -306,7 +306,7 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
             color:
                 Theme.of(context).appBarTheme.foregroundColor ?? Colors.black,
             fontWeight: FontWeight.w600,
-            fontSize: 20,
+            fontSize: 16,
           ),
         ),
         leading: IconButton(
@@ -336,16 +336,16 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                     style: TextStyle(
                       color: Colors.blue,
                       fontWeight: FontWeight.w600,
-                      fontSize: 16,
+                      fontSize: 12,
                     ),
                   ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
         ],
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(8.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -353,12 +353,12 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
               const Text(
                 'Title',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 11,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               TextFormField(
                 controller: _titleController,
                 decoration: InputDecoration(
@@ -366,34 +366,35 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                   hintStyle: TextStyle(
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.4),
+                    ).colorScheme.onSurface.withValues(alpha: 0.5),
+                    fontSize: 14,
                   ),
                   filled: true,
                   fillColor: Theme.of(context).cardColor,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                     borderSide: BorderSide(
                       color: Colors.grey[300]!,
                       width: 1.0,
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                     borderSide: BorderSide(
                       color: Colors.grey[300]!,
                       width: 1.0,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                     borderSide: BorderSide(
                       color: Colors.blue[400]!,
                       width: 2.0,
                     ),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
+                    horizontal: 12,
+                    vertical: 8,
                   ),
                 ),
                 textInputAction: TextInputAction.next,
@@ -401,22 +402,22 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                 inputFormatters: [UpperCaseFirstLetterFormatter()],
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
 
               // Date Field
               const Text(
                 'Date',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 11,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Container(
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: Colors.grey[300]!, width: 1.0),
                 ),
                 child: Column(
@@ -424,23 +425,23 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                     // Clickable date display
                     InkWell(
                       onTap: _toggleCalendar,
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(12),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(6),
                       ),
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
+                          horizontal: 12,
+                          vertical: 8,
                         ),
                         child: Row(
                           children: [
                             Icon(
                               Icons.calendar_today,
                               color: Colors.grey[600],
-                              size: 20,
+                              size: 16,
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 8),
                             Text(
                               _selectedDate != null
                                   ? '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'
@@ -450,7 +451,7 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                                     ? Theme.of(context).colorScheme.onSurface
                                     : Theme.of(context).colorScheme.onSurface
                                           .withValues(alpha: 0.4),
-                                fontSize: 16,
+                                fontSize: 14,
                               ),
                             ),
                             const Spacer(),
@@ -459,7 +460,7 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                                   ? Icons.keyboard_arrow_up
                                   : Icons.keyboard_arrow_down,
                               color: Colors.grey[600],
-                              size: 20,
+                              size: 16,
                             ),
                           ],
                         ),
@@ -488,7 +489,7 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                           formatButtonVisible: false,
                           titleCentered: true,
                           titleTextStyle: TextStyle(
-                            fontSize: 18,
+                            fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
@@ -503,14 +504,14 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                         ),
                         daysOfWeekStyle: DaysOfWeekStyle(
                           weekdayStyle: TextStyle(
-                            fontSize: 14,
+                            fontSize: 11,
                             color: Theme.of(
                               context,
                             ).colorScheme.onSurface.withValues(alpha: 0.7),
                             fontWeight: FontWeight.w500,
                           ),
                           weekendStyle: TextStyle(
-                            fontSize: 14,
+                            fontSize: 11,
                             color: Theme.of(
                               context,
                             ).colorScheme.onSurface.withValues(alpha: 0.7),
@@ -527,25 +528,25 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                             shape: BoxShape.circle,
                           ),
                           defaultTextStyle: TextStyle(
-                            fontSize: 16,
+                            fontSize: 12,
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
                           weekendTextStyle: TextStyle(
-                            fontSize: 16,
+                            fontSize: 12,
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
                           outsideTextStyle: TextStyle(
-                            fontSize: 16,
+                            fontSize: 12,
                             color: Theme.of(
                               context,
                             ).colorScheme.onSurface.withValues(alpha: 0.4),
                           ),
                           selectedTextStyle: const TextStyle(
-                            fontSize: 16,
+                            fontSize: 12,
                             color: Colors.white,
                           ),
                           todayTextStyle: TextStyle(
-                            fontSize: 16,
+                            fontSize: 12,
                             color: Colors.blue[600]!,
                           ),
                           markerDecoration: const BoxDecoration(
@@ -557,84 +558,85 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
               // Thoughts Field
               const Text(
                 'Thoughts',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               TextFormField(
                 controller: _thoughtsController,
-                maxLines: 8,
+                maxLines: 5,
                 decoration: InputDecoration(
                   hintText: 'Write your thoughts here...',
                   hintStyle: TextStyle(
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.4),
+                    ).colorScheme.onSurface.withValues(alpha: 0.5),
+                    fontSize: 14,
                   ),
                   filled: true,
                   fillColor: Theme.of(context).cardColor,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                     borderSide: BorderSide(
                       color: Colors.grey[300]!,
                       width: 1.0,
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                     borderSide: BorderSide(
                       color: Colors.grey[300]!,
                       width: 1.0,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                     borderSide: BorderSide(
                       color: Colors.blue[400]!,
                       width: 2.0,
                     ),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
+                    horizontal: 12,
+                    vertical: 8,
                   ),
                 ),
                 textCapitalization: TextCapitalization.sentences,
                 inputFormatters: [UpperCaseFirstLetterFormatter()],
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
               // Mood Selection
               const Text(
                 'Mood',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               LayoutBuilder(
                 builder: (context, constraints) {
                   // Calculate responsive sizing
                   double screenWidth = constraints.maxWidth;
-                  double circleSize = screenWidth < 400 ? 60.0 : 70.0;
-                  double spacing = screenWidth < 400 ? 8.0 : 12.0;
+                  double circleSize = screenWidth < 400 ? 45.0 : 50.0;
+                  double spacing = screenWidth < 400 ? 6.0 : 8.0;
 
                   return Container(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(10.0),
                     decoration: BoxDecoration(
                       color: Theme.of(context).cardColor,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(6),
                       border: Border.all(color: Colors.grey[300]!, width: 1.0),
                     ),
                     child: Row(
@@ -653,33 +655,33 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                 },
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
               // Image Upload Section
               const Text(
                 'Images',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               if (_selectedImages.isNotEmpty)
                 Column(
                   children: [
                     // Display selected images
                     SizedBox(
-                      height: 200,
+                      height: 120,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
                         itemCount: _selectedImages.length,
                         itemBuilder: (context, index) {
                           return Container(
-                            width: 150,
+                            width: 90,
                             margin: const EdgeInsets.only(right: 8),
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(6),
                               border: Border.all(
                                 color: Colors.grey[300]!,
                                 width: 1.0,
@@ -688,11 +690,11 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                             child: Stack(
                               children: [
                                 ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(6),
                                   child: Image.file(
                                     _selectedImages[index],
-                                    width: 150,
-                                    height: 200,
+                                    width: 90,
+                                    height: 120,
                                     fit: BoxFit.cover,
                                   ),
                                 ),
@@ -710,7 +712,7 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                                       child: const Icon(
                                         Icons.close,
                                         color: Colors.white,
-                                        size: 16,
+                                        size: 12,
                                       ),
                                     ),
                                   ),
@@ -725,16 +727,16 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                     // Add more images button
                     InkWell(
                       onTap: _pickImage,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(6),
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
+                          horizontal: 12,
+                          vertical: 8,
                         ),
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.surface,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                           border: Border.all(
                             color: Colors.grey[300]!,
                             width: 1.0,
@@ -758,7 +760,7 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                                 color: Theme.of(
                                   context,
                                 ).colorScheme.onSurface.withValues(alpha: 0.6),
-                                fontSize: 14,
+                                fontSize: 12,
                               ),
                             ),
                           ],
@@ -770,13 +772,13 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
               else
                 InkWell(
                   onTap: _pickImage,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(6),
                   child: Container(
                     width: double.infinity,
-                    height: 150,
+                    height: 100,
                     decoration: BoxDecoration(
                       color: Theme.of(context).cardColor,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(6),
                       border: Border.all(
                         color: Colors.grey[300]!,
                         width: 1.0,
@@ -788,7 +790,7 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                       children: [
                         Icon(
                           Icons.add_photo_alternate_outlined,
-                          size: 48,
+                          size: 32,
                           color: Theme.of(
                             context,
                           ).colorScheme.onSurface.withValues(alpha: 0.4),
@@ -818,7 +820,7 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                   ),
                 ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 24),
             ],
           ),
         ),
