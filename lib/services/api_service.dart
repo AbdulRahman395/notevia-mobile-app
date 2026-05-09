@@ -567,11 +567,68 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> deleteJournal(
+    String token,
+    int journalId,
+  ) async {
+    try {
+      print('Deleting journal $journalId with token: $token');
+
+      final response = await http
+          .delete(
+            Uri.parse('$baseUrl/journals/$journalId'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+              'User-Agent': 'Notevia-Flutter-App',
+            },
+          )
+          .timeout(const Duration(seconds: 15));
+
+      print('Delete journal response status: ${response.statusCode}');
+      print('Delete journal response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true, 'message': 'Journal deleted successfully'};
+      } else if (response.statusCode == 401) {
+        await _handleUnauthorized();
+        return {
+          'success': false,
+          'message': 'Authentication expired. Please login again.',
+          'requires_auth_redirect': true,
+        };
+      } else {
+        return {
+          'success': false,
+          'message':
+              jsonDecode(response.body)['message'] ??
+              'Failed to delete journal',
+          'error': response.body,
+        };
+      }
+    } on http.ClientException catch (e) {
+      print('Delete journal ClientException: ${e.toString()}');
+      return {
+        'success': false,
+        'message': 'Connection failed while deleting journal',
+        'error': e.toString(),
+      };
+    } catch (e) {
+      print('Delete journal error: ${e.toString()}');
+      return {
+        'success': false,
+        'message': 'Journal deletion error: ${e.toString()}',
+      };
+    }
+  }
+
   static Future<Map<String, dynamic>> createJournal(
     String token,
     String title,
     String content,
     String date, {
+    String? mood,
     List<File>? imageFiles,
   }) async {
     try {
@@ -594,6 +651,9 @@ class ApiService {
       request.fields['title'] = title;
       request.fields['content'] = content;
       request.fields['journalDate'] = date; // Exact field name as specified
+      if (mood != null) {
+        request.fields['mood'] = mood!;
+      }
 
       // Add multiple image files if provided
       if (imageFiles != null && imageFiles.isNotEmpty) {
@@ -685,6 +745,178 @@ class ApiService {
         'success': false,
         'message': 'Journal creation error: ${e.toString()}',
       };
+    }
+  }
+
+  static Future<Map<String, dynamic>> getLockPreferences(String token) async {
+    try {
+      print('Getting lock preferences with token: $token');
+
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/lock/preferences'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+              'User-Agent': 'Notevia-Flutter-App',
+            },
+          )
+          .timeout(const Duration(seconds: 15));
+
+      print('Get lock preferences response status: ${response.statusCode}');
+      print('Get lock preferences response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': 'Lock preferences fetched successfully',
+          'data': jsonDecode(response.body),
+        };
+      } else if (response.statusCode == 401) {
+        await _handleUnauthorized();
+        return {
+          'success': false,
+          'message': 'Authentication expired. Please login again.',
+          'requires_lock_redirect': true,
+        };
+      } else {
+        return {
+          'success': false,
+          'message':
+              jsonDecode(response.body)['message'] ??
+              'Failed to fetch lock preferences',
+          'error': response.body,
+        };
+      }
+    } on http.ClientException catch (e) {
+      print('Get lock preferences ClientException: ${e.toString()}');
+      return {
+        'success': false,
+        'message': 'Connection failed while fetching lock preferences',
+        'error': e.toString(),
+      };
+    } catch (e) {
+      print('Get lock preferences error: ${e.toString()}');
+      return {
+        'success': false,
+        'message': 'Lock preferences fetch error: ${e.toString()}',
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateLockPreferences(
+    String token,
+    String preferences,
+  ) async {
+    try {
+      print(
+        'Updating lock preferences with token: $token, preferences: $preferences',
+      );
+
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl/lock/preferences'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+              'User-Agent': 'Notevia-Flutter-App',
+            },
+            body: jsonEncode({"preferences": preferences}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      print('Update lock preferences response status: ${response.statusCode}');
+      print('Update lock preferences response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': 'Lock preferences updated successfully',
+          'data': jsonDecode(response.body),
+        };
+      } else if (response.statusCode == 401) {
+        await _handleUnauthorized();
+        return {
+          'success': false,
+          'message': 'Authentication expired. Please login again.',
+          'requires_lock_redirect': true,
+        };
+      } else {
+        return {
+          'success': false,
+          'message':
+              jsonDecode(response.body)['message'] ??
+              'Failed to update lock preferences',
+          'error': response.body,
+        };
+      }
+    } on http.ClientException catch (e) {
+      print('Update lock preferences ClientException: ${e.toString()}');
+      return {
+        'success': false,
+        'message': 'Connection failed while updating lock preferences',
+        'error': e.toString(),
+      };
+    } catch (e) {
+      print('Update lock preferences error: ${e.toString()}');
+      return {
+        'success': false,
+        'message': 'Lock preferences update error: ${e.toString()}',
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> sendHeartbeat(String token) async {
+    try {
+      print('Sending heartbeat with token: $token');
+
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/heartbeat'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+              'User-Agent': 'Notevia-Flutter-App',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
+
+      print('Heartbeat response status: ${response.statusCode}');
+      print('Heartbeat response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': 'Heartbeat sent successfully',
+          'data': jsonDecode(response.body),
+        };
+      } else if (response.statusCode == 401) {
+        await _handleUnauthorized();
+        return {
+          'success': false,
+          'message': 'Authentication expired. Please login again.',
+          'requires_auth_redirect': true,
+        };
+      } else {
+        return {
+          'success': false,
+          'message': jsonDecode(response.body)['message'] ?? 'Heartbeat failed',
+          'error': response.body,
+        };
+      }
+    } on http.ClientException catch (e) {
+      print('Heartbeat ClientException: ${e.toString()}');
+      return {
+        'success': false,
+        'message': 'Connection failed while sending heartbeat',
+        'error': e.toString(),
+      };
+    } catch (e) {
+      print('Heartbeat error: ${e.toString()}');
+      return {'success': false, 'message': 'Heartbeat error: ${e.toString()}'};
     }
   }
 }

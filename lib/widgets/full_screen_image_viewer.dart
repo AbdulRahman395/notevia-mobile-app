@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../services/toaster_service.dart';
 
 class FullScreenImageViewer extends StatefulWidget {
   final String imageUrl;
@@ -189,12 +190,9 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer>
                   IconButton(
                     onPressed: () {
                       // TODO: Implement download functionality
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Download feature coming soon'),
-                          backgroundColor: Colors.white,
-                          duration: Duration(seconds: 1),
-                        ),
+                      ToasterService.showInfo(
+                        context,
+                        'Download feature coming soon',
                       );
                     },
                     icon: const Icon(

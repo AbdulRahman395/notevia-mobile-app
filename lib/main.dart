@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'services/theme_service.dart';
+import 'services/app_lock_service.dart';
+import 'services/heartbeat_service.dart';
+import 'services/token_service.dart';
 import 'pages/splash_screen.dart';
 import 'pages/signin_page.dart';
 import 'pages/signup_page.dart';
@@ -9,6 +12,7 @@ import 'pages/pin_verification_page.dart';
 import 'pages/home_page.dart';
 import 'pages/journal_detail_page.dart';
 import 'pages/journal_entry_page.dart';
+import 'pages/app_lock_preferences_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -21,19 +25,55 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   final ThemeService _themeService = ThemeService();
+  final AppLockService _appLockService = AppLockService();
+  final HeartbeatService _heartbeatService = HeartbeatService();
+  String? _currentToken;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _themeService.loadTheme();
+    _initializeServices();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _appLockService.dispose();
+    _heartbeatService.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _appLockService.handleAppLifecycleChange(state);
+    _heartbeatService.handleAppLifecycleChange(state);
+  }
+
+  Future<void> _initializeServices() async {
+    _currentToken = await TokenService.getAccessToken();
+    if (_currentToken != null) {
+      await _appLockService.initialize(_currentToken!);
+      await _heartbeatService.initialize(_currentToken!);
+
+      // Start heartbeat if app is in foreground
+      if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
+        _heartbeatService.startHeartbeat();
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _themeService,
+      animation: Listenable.merge([
+        _themeService,
+        _appLockService,
+        _heartbeatService,
+      ]),
       builder: (context, child) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
@@ -43,6 +83,21 @@ class _MyAppState extends State<MyApp> {
           themeMode: _themeService.themeMode,
           initialRoute: '/',
           onGenerateRoute: (settings) {
+            // Check if app is locked and redirect to PIN verification
+            if (_appLockService.isLocked && _currentToken != null) {
+              // Allow certain routes even when locked
+              if (settings.name != '/pin-verification' &&
+                  settings.name != '/create-pin' &&
+                  settings.name != '/signin' &&
+                  settings.name != '/signup' &&
+                  settings.name != '/') {
+                return MaterialPageRoute(
+                  builder: (context) =>
+                      PinVerificationPage(token: _currentToken!),
+                );
+              }
+            }
+
             switch (settings.name) {
               case '/':
                 return MaterialPageRoute(
@@ -62,12 +117,12 @@ class _MyAppState extends State<MyApp> {
                   builder: (context) => VerificationPage(email: email ?? ''),
                 );
               case '/create-pin':
-                final token = settings.arguments as String?;
+                final token = settings.arguments as String? ?? _currentToken;
                 return MaterialPageRoute(
                   builder: (context) => CreatePinPage(token: token ?? ''),
                 );
               case '/pin-verification':
-                final token = settings.arguments as String?;
+                final token = settings.arguments as String? ?? _currentToken;
                 return MaterialPageRoute(
                   builder: (context) => PinVerificationPage(token: token ?? ''),
                 );
@@ -84,6 +139,10 @@ class _MyAppState extends State<MyApp> {
               case '/journal-entry':
                 return MaterialPageRoute(
                   builder: (context) => const JournalEntryPage(),
+                );
+              case '/app-lock-preferences':
+                return MaterialPageRoute(
+                  builder: (context) => const AppLockPreferencesPage(),
                 );
               default:
                 return MaterialPageRoute(

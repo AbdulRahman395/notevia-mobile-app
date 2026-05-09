@@ -66,6 +66,7 @@ class _JournalListState extends State<JournalList> {
             'journal_date':
                 DateTime.tryParse(journal['journal_date'] ?? '') ??
                 DateTime.now(),
+            'mood': journal['mood'] ?? '',
             'media': _formatMedia(journal['media']),
           });
         }
@@ -338,6 +339,7 @@ class _JournalListState extends State<JournalList> {
                   title: journal['title'] ?? '',
                   content: journal['content'] ?? '',
                   journalDate: journal['journal_date'] ?? DateTime.now(),
+                  mood: journal['mood'] ?? '',
                   media: List<Map<String, String>>.from(journal['media'] ?? []),
                   onTap: () => widget.onView(journal['id'] ?? ''),
                   onEdit: () => widget.onEdit(journal),

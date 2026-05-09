@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 import '../services/api_service.dart';
 import '../services/token_service.dart';
+import '../services/toaster_service.dart';
 import '../widgets/full_screen_image_viewer.dart';
+import '../widgets/delete_confirmation_dialog.dart';
 
 class JournalDetailPage extends StatefulWidget {
   final int journalId;
@@ -76,6 +78,21 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
     }
   }
 
+  String _getMoodEmoji(String mood) {
+    switch (mood.toLowerCase()) {
+      case 'happy':
+        return '😍';
+      case 'sad':
+        return '😢';
+      case 'neutral':
+        return '😐';
+      case 'calm':
+        return '☺️';
+      default:
+        return '';
+    }
+  }
+
   String _formatDate(String? dateString) {
     if (dateString == null || dateString.isEmpty) return '';
 
@@ -108,6 +125,79 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
     }
   }
 
+  String _formatContentForHtml(String content) {
+    if (content.isEmpty) return content;
+
+    // Convert \r\n\r\n to paragraph breaks and \r\n to line breaks
+    String formatted = content
+        .replaceAll('\r\n\r\n', '</p><p>')
+        .replaceAll('\r\n', '<br>');
+
+    // Wrap in paragraph tags if not already wrapped
+    if (!formatted.startsWith('<p>')) {
+      formatted = '<p>$formatted</p>';
+    }
+
+    return formatted;
+  }
+
+  void _showDeleteConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) => DeleteConfirmationDialog(
+        title: 'Delete Journal',
+        message:
+            'Are you sure you want to delete this journal? This action cannot be undone.',
+        onConfirm: _deleteJournal,
+        onCancel: () {},
+      ),
+    );
+  }
+
+  Future<void> _deleteJournal() async {
+    try {
+      final token = await TokenService.getCurrentToken();
+      if (token.isEmpty) {
+        _showErrorSnackBar('No authentication token found');
+        return;
+      }
+
+      final result = await ApiService.deleteJournal(token, widget.journalId);
+
+      if (mounted) {
+        if (result['success']) {
+          _showSuccessSnackBar('Journal deleted successfully');
+          // Navigate back to home page after successful deletion with refresh signal
+          Navigator.of(context).pop(true);
+        } else if (result['requires_auth_redirect'] == true) {
+          // Handle 401 - redirect to PIN verification with auth token
+          final authToken = await TokenService.getAuthToken();
+          if (authToken != null) {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/pin-verification',
+              (Route<dynamic> route) => false,
+              arguments: authToken,
+            );
+          }
+        } else {
+          _showErrorSnackBar(result['message'] ?? 'Failed to delete journal');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorSnackBar('Failed to delete journal: ${e.toString()}');
+      }
+    }
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ToasterService.showSuccess(context, message);
+  }
+
+  void _showErrorSnackBar(String message) {
+    ToasterService.showError(context, message);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -137,6 +227,10 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
               Icons.refresh,
               color: Theme.of(context).appBarTheme.foregroundColor,
             ),
+          ),
+          IconButton(
+            onPressed: _showDeleteConfirmation,
+            icon: Icon(Icons.delete_outline, color: Colors.red),
           ),
         ],
       ),
@@ -217,20 +311,45 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
                         ),
                       ],
                     ),
-                    child: Html(
-                      data: _journal!['content'] ?? '',
-                      style: {
-                        "body": Style(
-                          fontSize: FontSize(16),
-                          lineHeight: const LineHeight(1.6),
-                          color: Theme.of(context).colorScheme.onSurface,
-                          margin: Margins.zero,
-                          padding: HtmlPaddings.zero,
+                    child: Column(
+                      children: [
+                        Html(
+                          data: _formatContentForHtml(
+                            _journal!['content'] ?? '',
+                          ),
+                          style: {
+                            "body": Style(
+                              fontSize: FontSize(16),
+                              lineHeight: const LineHeight(1.6),
+                              color: Theme.of(context).colorScheme.onSurface,
+                              margin: Margins.zero,
+                              padding: HtmlPaddings.zero,
+                            ),
+                            "p": Style(margin: Margins.only(bottom: 16)),
+                            "strong": Style(fontWeight: FontWeight.bold),
+                            "em": Style(fontStyle: FontStyle.italic),
+                          },
                         ),
-                        "p": Style(margin: Margins.only(bottom: 16)),
-                        "strong": Style(fontWeight: FontWeight.bold),
-                        "em": Style(fontStyle: FontStyle.italic),
-                      },
+
+                        // Mood display
+                        if (_journal!['mood'] != null &&
+                            _journal!['mood'].toString().isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Text(
+                                'Mood: ${_getMoodEmoji(_journal!['mood'].toString())}',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: null, // Use default emoji colors
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                   const SizedBox(height: 24),

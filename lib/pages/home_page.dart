@@ -3,6 +3,7 @@ import 'dart:async';
 import '../services/api_service.dart';
 import '../services/token_service.dart';
 import '../widgets/full_screen_image_viewer.dart';
+import 'settings_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -167,6 +168,21 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
   }
 
+  String _getMoodEmoji(String mood) {
+    switch (mood.toLowerCase()) {
+      case 'happy':
+        return '😍';
+      case 'sad':
+        return '😢';
+      case 'neutral':
+        return '😐';
+      case 'calm':
+        return '☺️';
+      default:
+        return '';
+    }
+  }
+
   String _stripHtmlTags(String htmlText) {
     final RegExp exp = RegExp(r'<[^>]*>', multiLine: true, caseSensitive: true);
     return htmlText.replaceAll(exp, '').trim();
@@ -217,7 +233,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     ),
                     constraints: const BoxConstraints(minWidth: 160),
                     onSelected: (String value) {
-                      if (value == 'logout') {
+                      print('Menu selected: $value');
+                      if (value == 'settings') {
+                        print('Navigating to settings page');
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const SettingsPage(),
+                          ),
+                        );
+                      } else if (value == 'logout') {
+                        print('Logging out');
                         TokenService.clearTokens().then((_) {
                           if (mounted) {
                             Navigator.of(
@@ -396,19 +421,24 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             }
                             final journal = _journals[index];
                             return GestureDetector(
-                              onTap: () {
+                              onTap: () async {
                                 _searchFocusNode.unfocus();
                                 final journalId = journal['id'] as int?;
                                 if (journalId != null) {
-                                  Navigator.of(context).pushNamed(
-                                    '/journal-detail',
-                                    arguments: journalId,
-                                  );
+                                  final result = await Navigator.of(context)
+                                      .pushNamed(
+                                        '/journal-detail',
+                                        arguments: journalId,
+                                      );
+                                  // Refresh data if journal was successfully deleted (result is true)
+                                  if (result == true && mounted) {
+                                    _fetchData(page: _currentPage);
+                                  }
                                 }
                               },
                               child: Container(
-                                margin: const EdgeInsets.only(bottom: 15.0),
-                                padding: const EdgeInsets.all(20.0),
+                                margin: const EdgeInsets.only(bottom: 12.0),
+                                padding: const EdgeInsets.all(16.0),
                                 decoration: BoxDecoration(
                                   color: Theme.of(context).cardColor,
                                   borderRadius: BorderRadius.circular(12),
@@ -472,7 +502,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                       ],
                                     ),
 
-                                    const SizedBox(height: 12),
+                                    const SizedBox(height: 8),
 
                                     // Content
                                     Text(
@@ -489,7 +519,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                       overflow: TextOverflow.ellipsis,
                                     ),
 
-                                    const SizedBox(height: 12),
+                                    // Mood display
+                                    if (journal['mood'] != null &&
+                                        journal['mood']
+                                            .toString()
+                                            .isNotEmpty) ...[
+                                      const SizedBox(height: 6),
+                                    ],
+
+                                    const SizedBox(height: 8),
 
                                     // Media Images (small thumbnails)
                                     if (journal['media'] != null &&
@@ -601,11 +639,27 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
                                     const SizedBox(height: 12),
 
-                                    // Footer
+                                    // Footer with arrow and mood
                                     Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
+                                        // Left side - mood display
+                                        if (journal['mood'] != null &&
+                                            journal['mood']
+                                                .toString()
+                                                .isNotEmpty)
+                                          Text(
+                                            '${journal['mood']}: ${_getMoodEmoji(journal['mood'].toString())}',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              color:
+                                                  null, // Use default emoji colors
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+
+                                        // Right side - arrow
                                         Icon(
                                           Icons.arrow_forward_ios,
                                           size: 16,
@@ -631,8 +685,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 20.0, right: 10),
         child: FloatingActionButton(
-          onPressed: () {
-            Navigator.of(context).pushNamed('/journal-entry');
+          onPressed: () async {
+            final result = await Navigator.of(
+              context,
+            ).pushNamed('/journal-entry');
+            // Refresh data if journal was successfully created (result is true)
+            if (result == true && mounted) {
+              _fetchData(page: _currentPage);
+            }
           },
           backgroundColor: Colors.blue[400],
           child: const Icon(Icons.add, color: Colors.white, size: 28),

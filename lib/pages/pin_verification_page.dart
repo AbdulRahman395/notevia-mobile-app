@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import '../services/api_service.dart';
 import '../services/token_service.dart';
+import '../services/app_lock_service.dart';
+import '../services/heartbeat_service.dart';
+import '../services/toaster_service.dart';
 
 class PinVerificationPage extends StatefulWidget {
   final String token;
@@ -15,7 +18,8 @@ class PinVerificationPage extends StatefulWidget {
 
 class _PinVerificationPageState extends State<PinVerificationPage> {
   final TextEditingController _pinController = TextEditingController();
-  bool _isLoading = false;
+  final AppLockService _appLockService = AppLockService();
+  final HeartbeatService _heartbeatService = HeartbeatService();
 
   @override
   void initState() {
@@ -57,10 +61,6 @@ class _PinVerificationPageState extends State<PinVerificationPage> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
-
     try {
       final result = await ApiService.verifyPIN(widget.token, pin);
 
@@ -71,7 +71,13 @@ class _PinVerificationPageState extends State<PinVerificationPage> {
               result['data']['accessToken'] ?? result['data']['token'] ?? '';
           if (accessToken.isNotEmpty) {
             await TokenService.storeAccessToken(accessToken);
+
+            // Update HeartbeatService with new token
+            _heartbeatService.updateToken(accessToken);
           }
+
+          // Notify AppLockService that PIN was verified successfully
+          _appLockService.unlockAfterPinVerification();
 
           _showSuccess('PIN verified successfully!');
           Future.delayed(const Duration(seconds: 2), () {
@@ -87,39 +93,21 @@ class _PinVerificationPageState extends State<PinVerificationPage> {
       if (mounted) {
         _showError('PIN verification failed: ${e.toString()}');
       }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
     }
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    ToasterService.showError(context, message);
   }
 
   void _showSuccess(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    ToasterService.showSuccess(context, message);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue[600],
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -127,7 +115,7 @@ class _PinVerificationPageState extends State<PinVerificationPage> {
           onPressed: () {
             Navigator.of(context).pop();
           },
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
         ),
       ),
       body: SafeArea(
@@ -147,30 +135,13 @@ class _PinVerificationPageState extends State<PinVerificationPage> {
                   children: [
                     const SizedBox(height: 20),
 
-                    // Icon
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Icon(
-                        Icons.lock,
-                        size: 40,
-                        color: Colors.blue[600],
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
                     // Title
                     const Text(
                       'Enter PIN',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Colors.black87,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -180,10 +151,7 @@ class _PinVerificationPageState extends State<PinVerificationPage> {
                     // Subtitle
                     Text(
                       'Enter your 4-digit PIN to access your account',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white.withOpacity(0.9),
-                      ),
+                      style: TextStyle(fontSize: 16, color: Colors.black54),
                       textAlign: TextAlign.center,
                     ),
 
@@ -204,21 +172,21 @@ class _PinVerificationPageState extends State<PinVerificationPage> {
                         borderRadius: BorderRadius.circular(12),
                         fieldHeight: 60,
                         fieldWidth: 60,
-                        activeFillColor: Colors.white.withOpacity(0.3),
-                        selectedFillColor: Colors.white.withOpacity(0.4),
-                        inactiveFillColor: Colors.white.withOpacity(0.2),
-                        activeColor: Colors.white,
-                        selectedColor: Colors.white,
-                        inactiveColor: Colors.white.withOpacity(0.5),
+                        activeFillColor: Colors.grey[50],
+                        selectedFillColor: Colors.grey[50],
+                        inactiveFillColor: Colors.grey[50],
+                        activeColor: Colors.grey[400]!,
+                        selectedColor: Colors.grey[400]!,
+                        inactiveColor: Colors.grey[400]!,
                         borderWidth: 2,
                       ),
                       enableActiveFill: true,
                       textStyle: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Colors.black87,
                       ),
-                      cursorColor: Colors.white,
+                      cursorColor: Colors.black87,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       onCompleted: (pin) {
                         _verifyPIN();
@@ -228,39 +196,7 @@ class _PinVerificationPageState extends State<PinVerificationPage> {
                       },
                     ),
 
-                    const SizedBox(height: 30),
-
-                    // Verify PIN Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _verifyPIN,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.blue[600],
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 2,
-                        ),
-                        child: _isLoading
-                            ? const CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.blue,
-                                ),
-                              )
-                            : const Text(
-                                'Verify PIN',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 40),
 
                     // Forgot PIN
                     Center(
@@ -273,10 +209,7 @@ class _PinVerificationPageState extends State<PinVerificationPage> {
                         },
                         child: Text(
                           'Forgot PIN?',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
-                            decoration: TextDecoration.underline,
-                          ),
+                          style: TextStyle(color: Colors.blue[600]),
                         ),
                       ),
                     ),
@@ -294,10 +227,7 @@ class _PinVerificationPageState extends State<PinVerificationPage> {
                         },
                         child: Text(
                           'Create New PIN',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
-                            decoration: TextDecoration.underline,
-                          ),
+                          style: TextStyle(color: Colors.blue[600]),
                         ),
                       ),
                     ),

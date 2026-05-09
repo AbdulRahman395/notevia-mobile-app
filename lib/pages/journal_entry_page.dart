@@ -6,6 +6,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'dart:io';
 import '../services/api_service.dart';
 import '../services/token_service.dart';
+import '../services/toaster_service.dart';
 
 class UpperCaseFirstLetterFormatter extends TextInputFormatter {
   @override
@@ -54,6 +55,7 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
   List<File> _selectedImages = [];
   bool _isLoading = false;
   bool _showCalendar = false;
+  String _selectedMood = '';
   final ImagePicker _imagePicker = ImagePicker();
 
   @override
@@ -134,21 +136,53 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    ToasterService.showError(context, message);
   }
 
   void _showSuccess(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 2),
+    ToasterService.showSuccess(context, message);
+  }
+
+  String _normalizeContentForApi(String content) {
+    if (content.isEmpty) return content;
+
+    // Convert single \n to \r\n for consistency
+    String normalized = content.replaceAll('\n', '\r\n');
+
+    // Ensure double line breaks for paragraphs (convert multiple \r\n to double \r\n\r\n)
+    normalized = normalized.replaceAll(RegExp(r'\r\n{3,}'), '\r\n\r\n');
+
+    return normalized;
+  }
+
+  Widget _buildMoodCircle(String moodName, String emoji, double circleSize) {
+    final isSelected = _selectedMood == moodName;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedMood = moodName;
+        });
+      },
+      child: Container(
+        width: circleSize,
+        height: circleSize,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isSelected ? Colors.blue[100] : Colors.transparent,
+          border: Border.all(
+            color: isSelected ? Colors.blue[400]! : Colors.grey[300]!,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            emoji,
+            style: TextStyle(
+              fontSize: circleSize * 0.6, // 60% of circle size
+              color: null, // Use default emoji colors
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -166,6 +200,11 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
 
     if (_selectedDate == null) {
       _showError('Please select a date');
+      return;
+    }
+
+    if (_selectedMood.isEmpty) {
+      _showError('Please select a mood');
       return;
     }
 
@@ -189,8 +228,9 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
       final result = await ApiService.createJournal(
         token,
         _titleController.text.trim(),
-        _thoughtsController.text.trim(),
+        _normalizeContentForApi(_thoughtsController.text.trim()),
         formattedDate,
+        mood: _selectedMood.isNotEmpty ? _selectedMood : null,
         imageFiles: _selectedImages.isNotEmpty ? _selectedImages : null,
       );
 
@@ -551,6 +591,50 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                 ),
                 textCapitalization: TextCapitalization.sentences,
                 inputFormatters: [UpperCaseFirstLetterFormatter()],
+              ),
+
+              const SizedBox(height: 24),
+
+              // Mood Selection
+              const Text(
+                'Mood',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 8),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  // Calculate responsive sizing
+                  double screenWidth = constraints.maxWidth;
+                  double circleSize = screenWidth < 400 ? 60.0 : 70.0;
+                  double spacing = screenWidth < 400 ? 8.0 : 12.0;
+                  double fontSize = screenWidth < 400 ? 20.0 : 24.0;
+                  double labelFontSize = screenWidth < 400 ? 10.0 : 12.0;
+
+                  return Container(
+                    padding: const EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[300]!, width: 1.0),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildMoodCircle('Happy', '😍', circleSize),
+                        SizedBox(width: spacing),
+                        _buildMoodCircle('Sad', '😢', circleSize),
+                        SizedBox(width: spacing),
+                        _buildMoodCircle('Neutral', '😐', circleSize),
+                        SizedBox(width: spacing),
+                        _buildMoodCircle('Calm', '☺️', circleSize),
+                      ],
+                    ),
+                  );
+                },
               ),
 
               const SizedBox(height: 24),

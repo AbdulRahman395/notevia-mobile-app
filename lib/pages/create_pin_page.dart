@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import '../services/api_service.dart';
 import '../services/token_service.dart';
+import '../services/toaster_service.dart';
 
 class CreatePinPage extends StatefulWidget {
   final String token;
@@ -70,23 +71,11 @@ class _CreatePinPageState extends State<CreatePinPage> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    ToasterService.showError(context, message);
   }
 
   void _showSuccess(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    ToasterService.showSuccess(context, message);
   }
 
   @override

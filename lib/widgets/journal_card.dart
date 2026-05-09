@@ -7,6 +7,7 @@ class JournalCard extends StatelessWidget {
   final String title;
   final String content;
   final DateTime journalDate;
+  final String mood;
   final List<Map<String, String>> media;
   final VoidCallback onTap;
   final VoidCallback onEdit;
@@ -18,6 +19,7 @@ class JournalCard extends StatelessWidget {
     required this.title,
     required this.content,
     required this.journalDate,
+    required this.mood,
     required this.media,
     required this.onTap,
     required this.onEdit,
@@ -95,6 +97,24 @@ class JournalCard extends StatelessWidget {
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
+
+                  // Mood display
+                  if (mood.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          '$mood: ${_getMoodEmoji(mood)}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6B7280),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
 
                   if (media.isNotEmpty) ...[
                     const SizedBox(height: 12),
@@ -174,6 +194,21 @@ class JournalCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _getMoodEmoji(String mood) {
+    switch (mood.toLowerCase()) {
+      case 'happy':
+        return '😍';
+      case 'sad':
+        return '😢';
+      case 'neutral':
+        return '😐';
+      case 'calm':
+        return '☺️';
+      default:
+        return '';
+    }
   }
 
   String _stripHtmlTags(String htmlString) {
