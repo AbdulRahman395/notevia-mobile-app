@@ -20,9 +20,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final _fullNameController = TextEditingController();
   final _bioController = TextEditingController();
   DateTime? _selectedDate;
-  DateTime _focusedDay = DateTime.now();
-  CalendarFormat _calendarFormat = CalendarFormat.month;
-  bool _showCalendar = false;
   File? _newProfilePicture;
   bool _isUpdating = false;
 
@@ -38,7 +35,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
       try {
         final dateStr = widget.profileData['date_of_birth'];
         _selectedDate = DateTime.parse(dateStr);
-        _focusedDay = _selectedDate!;
       } catch (e) {
         print('Error parsing date: ${e.toString()}');
       }
@@ -52,18 +48,142 @@ class _EditProfilePageState extends State<EditProfilePage> {
     super.dispose();
   }
 
-  void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
-    setState(() {
-      _selectedDate = selectedDay;
-      _focusedDay = focusedDay;
-      _showCalendar = false; // Hide calendar after selection
-    });
-  }
+  void _showDatePickerPopup() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Container(
+            width: 260,
+            height: 280,
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Select Date',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        child: const Icon(Icons.close, size: 16),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
 
-  void _toggleCalendar() {
-    setState(() {
-      _showCalendar = !_showCalendar;
-    });
+                // Calendar
+                Expanded(
+                  child: TableCalendar(
+                    firstDay: DateTime.utc(2000, 1, 1),
+                    lastDay: DateTime.utc(2100, 12, 31),
+                    focusedDay: _selectedDate ?? DateTime.now(),
+                    calendarFormat: CalendarFormat.month,
+                    availableCalendarFormats: const {
+                      CalendarFormat.month: 'Month',
+                    },
+                    selectedDayPredicate: (day) {
+                      return isSameDay(_selectedDate, day);
+                    },
+                    onDaySelected: (selectedDay, focusedDay) {
+                      setState(() {
+                        _selectedDate = selectedDay;
+                      });
+                      Navigator.of(context).pop();
+                    },
+                    onPageChanged: (focusedDay) {
+                      // Handle page change if needed
+                    },
+                    headerStyle: HeaderStyle(
+                      formatButtonVisible: false,
+                      titleCentered: true,
+                      titleTextStyle: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      leftChevronIcon: Icon(
+                        Icons.chevron_left,
+                        color: Theme.of(context).colorScheme.onSurface,
+                        size: 16,
+                      ),
+                      rightChevronIcon: Icon(
+                        Icons.chevron_right,
+                        color: Theme.of(context).colorScheme.onSurface,
+                        size: 16,
+                      ),
+                    ),
+                    daysOfWeekStyle: DaysOfWeekStyle(
+                      weekdayStyle: TextStyle(
+                        fontSize: 8,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.7),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      weekendStyle: TextStyle(
+                        fontSize: 8,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.7),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    calendarStyle: CalendarStyle(
+                      outsideDaysVisible: false,
+                      weekendTextStyle: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 9,
+                      ),
+                      holidayTextStyle: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 9,
+                      ),
+                      selectedTextStyle: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                      ),
+                      selectedDecoration: BoxDecoration(
+                        color: Colors.blue[600],
+                        shape: BoxShape.circle,
+                      ),
+                      todayTextStyle: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 9,
+                      ),
+                      todayDecoration: BoxDecoration(
+                        color: Colors.blue[100],
+                        shape: BoxShape.circle,
+                      ),
+                      defaultTextStyle: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 9,
+                      ),
+                      cellMargin: const EdgeInsets.all(0),
+                      cellPadding: const EdgeInsets.all(2),
+                    ),
+                    rowHeight: 28,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   String _formatDateForDisplay(DateTime? date) {
@@ -295,136 +415,46 @@ class _EditProfilePageState extends State<EditProfilePage> {
               Container(
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surface,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(6),
-                  ),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.grey[300]!, width: 1),
                 ),
-                child: Column(
-                  children: [
-                    // Clickable date display
-                    InkWell(
-                      onTap: _toggleCalendar,
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(6),
-                      ),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.calendar_today,
-                              color: Colors.grey[600],
-                              size: 16,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _selectedDate != null
-                                  ? _formatDateForDisplay(_selectedDate)
-                                  : 'Select date...',
-                              style: TextStyle(
-                                color: _selectedDate != null
-                                    ? Theme.of(context).colorScheme.onSurface
-                                    : Theme.of(context).colorScheme.onSurface
-                                          .withValues(alpha: 0.4),
-                                fontSize: 14,
-                              ),
-                            ),
-                            const Spacer(),
-                            Icon(
-                              _showCalendar
-                                  ? Icons.keyboard_arrow_up
-                                  : Icons.keyboard_arrow_down,
-                              color: Colors.grey[600],
-                              size: 20,
-                            ),
-                          ],
-                        ),
-                      ),
+                child: InkWell(
+                  onTap: _showDatePickerPopup,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
                     ),
-                    // Calendar
-                    if (_showCalendar)
-                      TableCalendar(
-                        firstDay: DateTime.utc(2000, 1, 1),
-                        lastDay: DateTime.utc(2100, 12, 31),
-                        focusedDay: _focusedDay,
-                        calendarFormat: _calendarFormat,
-                        selectedDayPredicate: (day) {
-                          return isSameDay(_selectedDate, day);
-                        },
-                        onDaySelected: _onDaySelected,
-                        onFormatChanged: (format) {
-                          setState(() {
-                            _calendarFormat = format;
-                          });
-                        },
-                        onPageChanged: (focusedDay) {
-                          _focusedDay = focusedDay;
-                        },
-                        headerStyle: HeaderStyle(
-                          formatButtonVisible: false,
-                          titleCentered: true,
-                          titleTextStyle: TextStyle(
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today,
+                          color: Colors.grey[600],
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _selectedDate != null
+                              ? _formatDateForDisplay(_selectedDate)
+                              : 'Select date...',
+                          style: TextStyle(
+                            color: _selectedDate != null
+                                ? Theme.of(context).colorScheme.onSurface
+                                : Theme.of(context).colorScheme.onSurface
+                                      .withValues(alpha: 0.4),
                             fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          leftChevronIcon: Icon(
-                            Icons.chevron_left,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          rightChevronIcon: Icon(
-                            Icons.chevron_right,
-                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
-                        daysOfWeekStyle: DaysOfWeekStyle(
-                          weekdayStyle: TextStyle(
-                            fontSize: 11,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.7),
-                            fontWeight: FontWeight.w500,
-                          ),
-                          weekendStyle: TextStyle(
-                            fontSize: 11,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.7),
-                            fontWeight: FontWeight.w500,
-                          ),
+                        const Spacer(),
+                        Icon(
+                          Icons.keyboard_arrow_down,
+                          color: Colors.grey[600],
+                          size: 20,
                         ),
-                        calendarStyle: CalendarStyle(
-                          outsideDaysVisible: false,
-                          weekendTextStyle: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          holidayTextStyle: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          selectedTextStyle: const TextStyle(
-                            color: Colors.white,
-                          ),
-                          selectedDecoration: BoxDecoration(
-                            color: Colors.blue[600],
-                            shape: BoxShape.circle,
-                          ),
-                          todayTextStyle: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          todayDecoration: BoxDecoration(
-                            color: Colors.blue[100],
-                            shape: BoxShape.circle,
-                          ),
-                          defaultTextStyle: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                        ),
-                      ),
-                  ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
