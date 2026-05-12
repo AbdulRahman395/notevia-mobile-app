@@ -6,7 +6,7 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     
     <application
-        android:label="notevia_mobile_app"
+        android:label="Notevia"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
