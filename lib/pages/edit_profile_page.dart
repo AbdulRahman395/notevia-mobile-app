@@ -5,6 +5,7 @@ import 'dart:io';
 import '../services/api_service.dart';
 import '../services/token_service.dart';
 import '../services/toaster_service.dart';
+import '../services/image_compression_service.dart';
 
 class EditProfilePage extends StatefulWidget {
   final Map<String, dynamic> profileData;
@@ -207,13 +208,68 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<void> _pickImage() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() {
-        _newProfilePicture = File(image.path);
-      });
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        final File originalFile = File(image.path);
+
+        // Check file size
+        final fileSize = await originalFile.length();
+        final formattedSize = ImageCompressionService.getFormattedFileSize(
+          fileSize,
+        );
+        print('Selected image size: $formattedSize');
+
+        // Compress the image
+        _showCompressionDialog();
+
+        final File? compressedFile =
+            await ImageCompressionService.compressImage(originalFile);
+
+        if (compressedFile != null) {
+          final finalSize = await compressedFile.length();
+          final finalFormattedSize =
+              ImageCompressionService.getFormattedFileSize(finalSize);
+          print('Compressed image size: $finalFormattedSize');
+
+          setState(() {
+            _newProfilePicture = compressedFile;
+          });
+
+          Navigator.of(context).pop(); // Close compression dialog
+          _showSuccess('Image compressed successfully ($finalFormattedSize)');
+        } else {
+          Navigator.of(context).pop(); // Close compression dialog
+          _showError('Failed to compress image. Please try a different image.');
+        }
+      }
+    } catch (e) {
+      print('Error picking image: $e');
+      _showError('Failed to pick image: ${e.toString()}');
     }
+  }
+
+  void _showCompressionDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const Dialog(
+          child: Padding(
+            padding: EdgeInsets.all(20.0),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 16),
+                Text('Compressing image...'),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _updateProfile() async {
@@ -251,7 +307,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
           // Go back to profile page with refresh flag
           Navigator.of(context).pop(true);
         } else {
-          _showError(result['message'] ?? 'Failed to update profile');
+          // Handle file too large error specifically
+          if (result['is_file_too_large'] == true) {
+            _showError(
+              '${result['message']} Try selecting a smaller image or let the app compress it automatically.',
+            );
+            // Clear the profile picture to allow user to try again
+            setState(() {
+              _newProfilePicture = null;
+            });
+          } else {
+            _showError(result['message'] ?? 'Failed to update profile');
+          }
         }
       }
     } catch (e) {

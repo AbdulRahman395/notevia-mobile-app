@@ -594,6 +594,13 @@ class ApiService {
           'message': 'Authentication expired. Please login again.',
           'requires_auth_redirect': true,
         };
+      } else if (response.statusCode == 413) {
+        return {
+          'success': false,
+          'message': 'Profile picture is too large. Please choose a smaller image (max 2MB).',
+          'error': response.body,
+          'is_file_too_large': true,
+        };
       } else {
         return {
           'success': false,
