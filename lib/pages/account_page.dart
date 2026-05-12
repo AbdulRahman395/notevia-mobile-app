@@ -159,22 +159,29 @@ class _AccountPageState extends State<AccountPage> {
           : _profileData != null
           ? SingleChildScrollView(
               padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Profile Header with Picture
-                  Center(
-                    child: Column(
+              child: Container(
+                padding: const EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[300]!, width: 1),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Profile Header with Picture on Left
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Profile Picture
+                        // Profile Picture on Left
                         Container(
-                          width: 120,
-                          height: 120,
+                          width: 60,
+                          height: 60,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: Colors.blue[300]!,
-                              width: 3,
+                              width: 2,
                             ),
                           ),
                           child: ClipOval(
@@ -191,7 +198,7 @@ class _AccountPageState extends State<AccountPage> {
                                         color: Colors.grey[200],
                                         child: Icon(
                                           Icons.person,
-                                          size: 60,
+                                          size: 30,
                                           color: Colors.grey[400],
                                         ),
                                       );
@@ -220,107 +227,106 @@ class _AccountPageState extends State<AccountPage> {
                                     color: Colors.grey[200],
                                     child: Icon(
                                       Icons.person,
-                                      size: 60,
+                                      size: 30,
                                       color: Colors.grey[400],
                                     ),
                                   ),
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        // Full Name
-                        Text(
-                          _profileData!['full_name'] ?? 'No Name',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        // Bio
-                        if (_profileData!['bio'] != null &&
-                            _profileData!['bio'].toString().isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20.0,
-                            ),
-                            child: Text(
-                              _profileData!['bio'],
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withOpacity(0.7),
+                        const SizedBox(width: 12),
+                        // Name and Date of Birth in Front
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Full Name
+                              Text(
+                                _profileData!['full_name'] ?? 'No Name',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                              textAlign: TextAlign.center,
+                              const SizedBox(height: 2),
+                              // Date of Birth
+                              if (_profileData!['date_of_birth'] != null)
+                                Text(
+                                  _formatDate(_profileData!['date_of_birth']),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface.withOpacity(0.6),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Member Since
+                    _buildSmallDetailRow(
+                      'Member Since',
+                      _formatDate(_profileData!['created_at']),
+                      Icons.calendar_today_outlined,
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Description/Bio
+                    if (_profileData!['bio'] != null &&
+                        _profileData!['bio'].toString().isNotEmpty) ...[
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Description',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.6),
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 32),
+                          const SizedBox(height: 4),
+                          Text(
+                            _profileData!['bio'],
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                    ],
 
-                  // Profile Details
-                  Container(
-                    padding: const EdgeInsets.all(20.0),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[300]!, width: 1),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // User ID
-                        _buildDetailRow(
-                          'User ID',
-                          _profileData!['user_id']?.toString() ?? 'N/A',
-                          Icons.person_outline,
-                        ),
-                        const Divider(height: 24),
-                        // Date of Birth
-                        if (_profileData!['date_of_birth'] != null)
-                          _buildDetailRow(
-                            'Date of Birth',
-                            _formatDate(_profileData!['date_of_birth']),
-                            Icons.cake_outlined,
-                          ),
-                        if (_profileData!['date_of_birth'] != null)
-                          const Divider(height: 24),
-                        // Member Since
-                        _buildDetailRow(
-                          'Member Since',
-                          _formatDate(_profileData!['created_at']),
-                          Icons.calendar_today_outlined,
-                        ),
-                        if (_profileData!['updated_at'] != null)
-                          const Divider(height: 24),
-                        // Last Updated
-                        if (_profileData!['updated_at'] != null)
-                          _buildDetailRow(
-                            'Last Updated',
-                            _formatDate(_profileData!['updated_at']),
-                            Icons.update_outlined,
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
+                    // Last Updated
+                    if (_profileData!['updated_at'] != null)
+                      _buildSmallDetailRow(
+                        'Last Updated',
+                        _formatDate(_profileData!['updated_at']),
+                        Icons.update_outlined,
+                      ),
+                  ],
+                ),
               ),
             )
           : const Center(child: Text('No profile data available')),
     );
   }
 
-  Widget _buildDetailRow(String label, String value, IconData icon) {
+  Widget _buildSmallDetailRow(String label, String value, IconData icon) {
     return Row(
       children: [
         Icon(
           icon,
-          size: 20,
-          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+          size: 14,
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 6),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -328,19 +334,19 @@ class _AccountPageState extends State<AccountPage> {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 11,
                   color: Theme.of(
                     context,
-                  ).colorScheme.onSurface.withOpacity(0.6),
+                  ).colorScheme.onSurface.withOpacity(0.5),
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 1),
               Text(
                 value,
                 style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
