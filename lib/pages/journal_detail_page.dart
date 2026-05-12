@@ -93,6 +93,21 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
     }
   }
 
+  Color _getMoodBackgroundColor(String mood) {
+    switch (mood.toLowerCase()) {
+      case 'happy':
+        return const Color(0xFF81C784); // More vibrant green
+      case 'sad':
+        return const Color(0xFFE57373); // More vibrant red
+      case 'neutral':
+        return const Color(0xFF90A4AE); // More vibrant blue-grey
+      case 'calm':
+        return const Color(0xFF64B5F6); // More vibrant sky blue
+      default:
+        return Colors.amber[200]!; // More visible default color
+    }
+  }
+
   String _formatDate(String? dateString) {
     if (dateString == null || dateString.isEmpty) return '';
 
@@ -293,7 +308,7 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
                   Text(
                     _journal!['title'] ?? 'Untitled',
                     style: TextStyle(
-                      fontSize: 28,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
@@ -323,7 +338,7 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
                           ),
                           style: {
                             "body": Style(
-                              fontSize: FontSize(16),
+                              fontSize: FontSize(14),
                               lineHeight: const LineHeight(1.6),
                               color: Theme.of(context).colorScheme.onSurface,
                               margin: Margins.zero,
@@ -342,12 +357,24 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              Text(
-                                'Mood: ${_getMoodEmoji(_journal!['mood'].toString())}',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: null, // Use default emoji colors
-                                  fontWeight: FontWeight.w500,
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _getMoodBackgroundColor(
+                                    _journal!['mood'].toString(),
+                                  ).withOpacity(0.3),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  '${_journal!['mood']} ${_getMoodEmoji(_journal!['mood'].toString())}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[700]!,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
                             ],

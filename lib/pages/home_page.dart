@@ -268,7 +268,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         return DeleteConfirmationDialog(
           title: 'Delete Journal',
           message:
-              'Are you sure you want to delete "$journalTitle"? This action cannot be undone.',
+              'Are you sure you want to delete this journal? This action cannot be undone.',
           onConfirm: () async {
             try {
               final token = await TokenService.getCurrentToken();
@@ -850,38 +850,50 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             // Edit icon
-                                            IconButton(
-                                              icon: Icon(
-                                                Icons.edit,
-                                                size: 16,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurface
-                                                    .withOpacity(0.6),
-                                              ),
-                                              onPressed: () =>
+                                            GestureDetector(
+                                              onTap: () =>
                                                   _editJournal(journal),
-                                              tooltip: 'Edit',
-                                              padding: const EdgeInsets.all(4),
-                                              constraints: const BoxConstraints(
-                                                minWidth: 32,
-                                                minHeight: 32,
+                                              child: Container(
+                                                padding: const EdgeInsets.all(
+                                                  6,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.grey[100],
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                ),
+                                                child: Icon(
+                                                  Icons.edit,
+                                                  size: 14,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurface
+                                                      .withOpacity(0.6),
+                                                ),
                                               ),
                                             ),
+                                            const SizedBox(width: 4),
                                             // Delete icon
-                                            IconButton(
-                                              icon: Icon(
-                                                Icons.delete,
-                                                size: 16,
-                                                color: Colors.red[400],
-                                              ),
-                                              onPressed: () =>
+                                            GestureDetector(
+                                              onTap: () =>
                                                   _deleteJournal(journal),
-                                              tooltip: 'Delete',
-                                              padding: const EdgeInsets.all(4),
-                                              constraints: const BoxConstraints(
-                                                minWidth: 32,
-                                                minHeight: 32,
+                                              child: Container(
+                                                padding: const EdgeInsets.all(
+                                                  6,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.grey[100],
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                ),
+                                                child: Icon(
+                                                  Icons.delete,
+                                                  size: 14,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurface
+                                                      .withOpacity(0.6),
+                                                ),
                                               ),
                                             ),
                                           ],
