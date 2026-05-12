@@ -30,7 +30,7 @@ class _HomePageState extends State<HomePage>
   int _currentPage = 1;
   int _totalPages = 1;
   int _totalJournals = 0;
-  final int _itemsPerPage = 10;
+  final int _itemsPerPage = 25;
 
   // Dashboard data
   int _writingStreak = 0;
