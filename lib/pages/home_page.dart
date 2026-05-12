@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:math' as math;
 import '../services/api_service.dart';
 import '../services/token_service.dart';
 import '../widgets/full_screen_image_viewer.dart';
@@ -14,7 +15,8 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
+class _HomePageState extends State<HomePage>
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   List<dynamic> _journals = [];
   bool _isLoading = true;
   bool _hasError = false;
@@ -33,12 +35,80 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   // Dashboard data
   int _writingStreak = 0;
 
+  // Animation controllers
+  late AnimationController _streakAnimationController;
+  late Animation<double> _streakAnimation;
+  late Animation<double> _shakeAnimation;
+  late Animation<double> _scaleAnimation;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _fetchData();
-    _fetchDashboardData();
+
+    // Initialize streak animation for spinner rotation with pause
+    _streakAnimationController = AnimationController(
+      duration: const Duration(
+        milliseconds: 9600,
+      ), // 9.6 seconds for full cycle
+      vsync: this,
+    );
+
+    _streakAnimation =
+        Tween<double>(
+          begin: 0.0,
+          end: 1.0, // Full rotation
+        ).animate(
+          CurvedAnimation(
+            parent: _streakAnimationController,
+            curve: const Interval(
+              0.0,
+              0.36, // Animate for 36% of the duration (3.5 seconds), pause for 64% (6.1 seconds)
+              curve: Curves.linear, // Linear for smooth spinning
+            ),
+          ),
+        );
+
+    // Shake animation during pause phase (like Candy Crush)
+    _shakeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _streakAnimationController,
+        curve: const Interval(
+          0.36,
+          0.58, // Shake during pause (1.1 seconds total)
+          curve: Curves.easeInOut,
+        ),
+      ),
+    );
+
+    // Scale animation during pause phase with smooth transition back
+    _scaleAnimation =
+        TweenSequence<double>([
+          TweenSequenceItem<double>(
+            tween: Tween<double>(begin: 1.0, end: 1.3),
+            weight: 0.5, // Scale up during first half (0.36-0.47, 1.05 seconds)
+          ),
+          TweenSequenceItem<double>(
+            tween: Tween<double>(begin: 1.3, end: 1.0),
+            weight:
+                0.5, // Scale down during second half (0.47-0.58, 1.05 seconds)
+          ),
+        ]).animate(
+          CurvedAnimation(
+            parent: _streakAnimationController,
+            curve: const Interval(
+              0.36,
+              0.58, // Scale animation during pause phase (2.1 seconds total)
+              curve: Curves.easeOutCubic,
+            ),
+          ),
+        );
+
+    // Start data fetching after animation is initialized
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchData();
+      _fetchDashboardData();
+    });
   }
 
   @override
@@ -47,6 +117,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     _searchFocusNode.dispose();
     _searchController.dispose();
     _searchDebounce?.cancel();
+    _streakAnimationController.dispose();
     super.dispose();
   }
 
@@ -89,6 +160,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         setState(() {
           _writingStreak = data['writingStreak'] ?? 0;
           print('Writing streak set to: $_writingStreak');
+
+          // Start streak animation if there's a streak
+          if (_writingStreak > 0) {
+            if (!_streakAnimationController.isAnimating) {
+              _streakAnimationController.repeat();
+            }
+          } else {
+            if (_streakAnimationController.isAnimating) {
+              _streakAnimationController.stop();
+              _streakAnimationController.reset();
+            }
+          }
         });
       } else {
         print('Dashboard fetch failed: ${dashboardResult['message']}');
@@ -362,22 +445,63 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.local_fire_department,
-                          color: _writingStreak > 0
-                              ? Colors.orange[500]
-                              : Colors.grey[400],
-                          size: 18,
-                        ),
+                        if (_writingStreak > 0)
+                          AnimatedBuilder(
+                            animation: Listenable.merge([
+                              _streakAnimation,
+                              _shakeAnimation,
+                              _scaleAnimation,
+                            ]),
+                            builder: (context, child) {
+                              // Safety check for animation values
+                              final shakeValue = _shakeAnimation.value.isNaN
+                                  ? 0.0
+                                  : _shakeAnimation.value;
+                              final scaleValue = _scaleAnimation.value.isNaN
+                                  ? 1.0
+                                  : _scaleAnimation.value;
+
+                              // Calculate shake offset (during pause phase)
+                              final shakeOffset =
+                                  shakeValue *
+                                  2.0 *
+                                  math.sin(shakeValue * math.pi * 8);
+
+                              // Calculate scale (during pause phase)
+                              final scale = scaleValue;
+
+                              return Transform.translate(
+                                offset: Offset(shakeOffset, 0),
+                                child: Transform.scale(
+                                  scale: scale,
+                                  child: Icon(
+                                    Icons.local_fire_department,
+                                    color: Colors.orange[500],
+                                    size: 18,
+                                  ),
+                                ),
+                              );
+                            },
+                          )
+                        else
+                          Icon(
+                            Icons.local_fire_department,
+                            color: Colors.grey[400],
+                            size: 18,
+                          ),
                         const SizedBox(width: 4),
-                        Text(
-                          '$_writingStreak',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: _writingStreak > 0
-                                ? Colors.orange[700]
-                                : Colors.grey[500],
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: Text(
+                            '$_writingStreak',
+                            key: ValueKey(_writingStreak),
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: _writingStreak > 0
+                                  ? Colors.orange[700]
+                                  : Colors.grey[500],
+                            ),
                           ),
                         ),
                       ],
