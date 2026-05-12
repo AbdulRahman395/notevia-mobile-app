@@ -508,6 +508,117 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> updateProfile(
+    String token, {
+    String? fullName,
+    String? dateOfBirth,
+    String? bio,
+    File? profilePicture,
+  }) async {
+    try {
+      print('Updating profile with token: $token');
+
+      // Create multipart request for file upload and data
+      var request = http.MultipartRequest(
+        'PATCH',
+        Uri.parse('$baseUrl/profiles/me'),
+      );
+
+      // Add headers
+      request.headers.addAll({
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+        'User-Agent': 'Notevia-Flutter-App',
+      });
+
+      // Add only non-null fields that have been modified
+      if (fullName != null) request.fields['full_name'] = fullName;
+      if (dateOfBirth != null) request.fields['date_of_birth'] = dateOfBirth;
+      if (bio != null) request.fields['bio'] = bio;
+
+      // Add profile picture file if provided
+      if (profilePicture != null) {
+        print('Adding profile picture to update request');
+
+        // Check if file exists
+        if (!await profilePicture.exists()) {
+          print(
+            'ERROR: Profile picture file does not exist: ${profilePicture.path}',
+          );
+          return {
+            'success': false,
+            'message': 'Profile picture file not found',
+          };
+        }
+
+        try {
+          final stream = http.ByteStream(profilePicture.openRead());
+          final length = await profilePicture.length();
+          final multipartFile = http.MultipartFile(
+            'profile_picture',
+            stream,
+            length,
+            filename: profilePicture.path.split('/').last,
+          );
+          request.files.add(multipartFile);
+        } catch (e) {
+          print('ERROR processing profile picture: ${e.toString()}');
+          return {
+            'success': false,
+            'message': 'Failed to process profile picture: ${e.toString()}',
+          };
+        }
+      }
+
+      // Send the request
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 30),
+      );
+
+      // Get the response
+      final response = await http.Response.fromStream(streamedResponse);
+
+      print('Update profile response status: ${response.statusCode}');
+      print('Update profile response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': 'Profile updated successfully',
+          'data': jsonDecode(response.body),
+        };
+      } else if (response.statusCode == 401) {
+        await _handleUnauthorized();
+        return {
+          'success': false,
+          'message': 'Authentication expired. Please login again.',
+          'requires_auth_redirect': true,
+        };
+      } else {
+        return {
+          'success': false,
+          'message':
+              jsonDecode(response.body)['message'] ??
+              'Failed to update profile',
+          'error': response.body,
+        };
+      }
+    } on http.ClientException catch (e) {
+      print('Update profile ClientException: ${e.toString()}');
+      return {
+        'success': false,
+        'message': 'Connection failed while updating profile',
+        'error': e.toString(),
+      };
+    } catch (e) {
+      print('Update profile error: ${e.toString()}');
+      return {
+        'success': false,
+        'message': 'Profile update error: ${e.toString()}',
+      };
+    }
+  }
+
   static Future<Map<String, dynamic>> getJournalById(
     String token,
     int journalId,

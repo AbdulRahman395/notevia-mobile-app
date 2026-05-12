@@ -5,6 +5,7 @@ import '../services/token_service.dart';
 import '../widgets/full_screen_image_viewer.dart';
 import '../widgets/delete_confirmation_dialog.dart';
 import 'settings_page.dart';
+import 'account_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -408,7 +409,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     constraints: const BoxConstraints(minWidth: 160),
                     onSelected: (String value) {
                       print('Menu selected: $value');
-                      if (value == 'settings') {
+                      if (value == 'account') {
+                        print('Navigating to account page');
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const AccountPage(),
+                          ),
+                        );
+                      } else if (value == 'settings') {
                         print('Navigating to settings page');
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -427,6 +435,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       }
                     },
                     itemBuilder: (BuildContext context) => [
+                      const PopupMenuItem<String>(
+                        value: 'account',
+                        child: Text('Profile'),
+                      ),
                       const PopupMenuItem<String>(
                         value: 'settings',
                         child: Text('Settings'),

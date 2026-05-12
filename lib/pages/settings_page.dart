@@ -46,45 +46,6 @@ class SettingsPage extends StatelessWidget {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            // Account Option
-            Container(
-              margin: const EdgeInsets.only(bottom: 16.0),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[300]!, width: 1),
-              ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 8,
-                ),
-                leading: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.blue[100],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(Icons.person, color: Colors.blue[600], size: 24),
-                ),
-                title: const Text(
-                  'Account',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                ),
-                trailing: Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withOpacity(0.4),
-                ),
-                onTap: () {
-                  _showFeatureComingSoon(context, 'Account');
-                },
-              ),
-            ),
-
             // Theme Option
             Container(
               margin: const EdgeInsets.only(bottom: 16.0),
