@@ -3,6 +3,7 @@ import 'dart:async';
 import '../services/api_service.dart';
 import '../services/token_service.dart';
 import '../widgets/full_screen_image_viewer.dart';
+import '../widgets/delete_confirmation_dialog.dart';
 import 'settings_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -232,6 +233,99 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   String _stripHtmlTags(String htmlText) {
     final RegExp exp = RegExp(r'<[^>]*>', multiLine: true, caseSensitive: true);
     return htmlText.replaceAll(exp, '').trim();
+  }
+
+  void _editJournal(Map<String, dynamic> journal) async {
+    _searchFocusNode.unfocus();
+    final journalId = journal['id'] as int?;
+    print('Edit journal clicked - journal data: $journal');
+    if (journalId != null) {
+      // Navigate to journal-entry page with journal data for editing
+      print('Navigating to journal-entry with arguments: $journal');
+      final result = await Navigator.of(context).pushNamed(
+        '/journal-entry',
+        arguments: journal, // Pass the entire journal data for editing
+      );
+      // Refresh data if journal was successfully updated (result is true)
+      if (result == true && mounted) {
+        _fetchData(page: _currentPage);
+      }
+    } else {
+      print('No journal ID found, cannot edit');
+    }
+  }
+
+  void _deleteJournal(Map<String, dynamic> journal) async {
+    final journalId = journal['id'] as int?;
+    final journalTitle = journal['title'] as String? ?? 'Untitled';
+
+    if (journalId == null) return;
+
+    // Show confirmation dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return DeleteConfirmationDialog(
+          title: 'Delete Journal',
+          message:
+              'Are you sure you want to delete "$journalTitle"? This action cannot be undone.',
+          onConfirm: () async {
+            try {
+              final token = await TokenService.getCurrentToken();
+              if (token.isEmpty) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Authentication error. Please login again.',
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+                return;
+              }
+
+              final result = await ApiService.deleteJournal(token, journalId);
+
+              if (mounted) {
+                if (result['success']) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Journal deleted successfully'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  // Refresh the data
+                  _fetchData(page: _currentPage);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        result['message'] ?? 'Failed to delete journal',
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error deleting journal: ${e.toString()}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          },
+          onCancel: () {
+            // Do nothing, just close the dialog
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -751,14 +845,46 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                             ),
                                           ),
 
-                                        // Right side - arrow
-                                        Icon(
-                                          Icons.arrow_forward_ios,
-                                          size: 16,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurface
-                                              .withOpacity(0.4),
+                                        // Right side - edit and delete icons
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            // Edit icon
+                                            IconButton(
+                                              icon: Icon(
+                                                Icons.edit,
+                                                size: 16,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface
+                                                    .withOpacity(0.6),
+                                              ),
+                                              onPressed: () =>
+                                                  _editJournal(journal),
+                                              tooltip: 'Edit',
+                                              padding: const EdgeInsets.all(4),
+                                              constraints: const BoxConstraints(
+                                                minWidth: 32,
+                                                minHeight: 32,
+                                              ),
+                                            ),
+                                            // Delete icon
+                                            IconButton(
+                                              icon: Icon(
+                                                Icons.delete,
+                                                size: 16,
+                                                color: Colors.red[400],
+                                              ),
+                                              onPressed: () =>
+                                                  _deleteJournal(journal),
+                                              tooltip: 'Delete',
+                                              padding: const EdgeInsets.all(4),
+                                              constraints: const BoxConstraints(
+                                                minWidth: 32,
+                                                minHeight: 32,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),

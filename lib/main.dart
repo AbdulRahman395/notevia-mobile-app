@@ -137,8 +137,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                       JournalDetailPage(journalId: journalId ?? 0),
                 );
               case '/journal-entry':
+                final journalData = settings.arguments as Map<String, dynamic>?;
                 return MaterialPageRoute(
-                  builder: (context) => const JournalEntryPage(),
+                  builder: (context) =>
+                      JournalEntryPage(journalData: journalData),
                 );
               case '/app-lock-preferences':
                 return MaterialPageRoute(

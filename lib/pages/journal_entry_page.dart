@@ -40,7 +40,9 @@ class UpperCaseFirstLetterFormatter extends TextInputFormatter {
 }
 
 class JournalEntryPage extends StatefulWidget {
-  const JournalEntryPage({super.key});
+  final Map<String, dynamic>? journalData;
+
+  const JournalEntryPage({super.key, this.journalData});
 
   @override
   State<JournalEntryPage> createState() => _JournalEntryPageState();
@@ -58,12 +60,33 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
   String _selectedMood = '';
   final ImagePicker _imagePicker = ImagePicker();
 
+  // Edit mode variables
+  bool _isEditMode = false;
+  Map<String, dynamic>? _originalJournalData;
+  List<String> _originalImages = [];
+  List<String> _imagesToDelete = [];
+
   @override
   void initState() {
     super.initState();
     // Set default date to today
     _selectedDate = DateTime.now();
     _focusedDay = DateTime.now();
+
+    // Debug: Check if we received journal data
+    print(
+      'JournalEntryPage initState - widget.journalData: ${widget.journalData}',
+    );
+
+    // Check if we're in edit mode
+    if (widget.journalData != null) {
+      _isEditMode = true;
+      _originalJournalData = widget.journalData;
+      print('Edit mode detected, populating fields...');
+      _populateFieldsFromJournalData();
+    } else {
+      print('No journal data received - create mode');
+    }
   }
 
   @override
@@ -71,6 +94,66 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
     _titleController.dispose();
     _thoughtsController.dispose();
     super.dispose();
+  }
+
+  void _populateFieldsFromJournalData() {
+    if (_originalJournalData == null) {
+      print('No original journal data to populate');
+      return;
+    }
+
+    final journal = _originalJournalData!;
+    print('Populating fields from journal data: $journal');
+
+    // Populate text fields
+    final title = journal['title'] ?? '';
+    final content = _stripHtmlTags(journal['content'] ?? '');
+    print('Setting title: "$title"');
+    print('Setting content: "$content"');
+
+    _titleController.text = title;
+    _thoughtsController.text = content;
+
+    // Set date
+    if (journal['journal_date'] != null) {
+      try {
+        final dateStr = journal['journal_date'];
+        print('Setting date: $dateStr');
+        _selectedDate = DateTime.parse(dateStr);
+        _focusedDay = _selectedDate!;
+      } catch (e) {
+        print('Error parsing date: $e');
+      }
+    }
+
+    // Set mood
+    final mood = journal['mood'] ?? '';
+    print('Setting mood: "$mood"');
+    _selectedMood = mood;
+
+    // Store original images
+    if (journal['media'] != null && journal['media'] is List) {
+      _originalImages = (journal['media'] as List)
+          .map((media) => media['url'] as String? ?? '')
+          .where((url) => url.isNotEmpty)
+          .toList();
+      print('Found ${_originalImages.length} original images');
+    }
+
+    print('Field population completed');
+    print('Title controller text: "${_titleController.text}"');
+    print('Thoughts controller text: "${_thoughtsController.text}"');
+    print('Selected mood: "$_selectedMood"');
+
+    // Trigger a rebuild to ensure the UI updates with the populated data
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  String _stripHtmlTags(String htmlText) {
+    final RegExp exp = RegExp(r'<[^>]*>', multiLine: true, caseSensitive: true);
+    return htmlText.replaceAll(exp, '').trim();
   }
 
   void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
@@ -131,6 +214,15 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
   Future<void> _removeImage(int index) {
     setState(() {
       _selectedImages.removeAt(index);
+    });
+    return Future.value();
+  }
+
+  Future<void> _removeOriginalImage(int index) {
+    setState(() {
+      final imageUrl = _originalImages[index];
+      _originalImages.removeAt(index);
+      _imagesToDelete.add(imageUrl);
     });
     return Future.value();
   }
@@ -243,19 +335,67 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
           '${_selectedDate!.month.toString().padLeft(2, '0')}-'
           '${_selectedDate!.day.toString().padLeft(2, '0')}';
 
-      // Create journal entry
-      final result = await ApiService.createJournal(
-        token,
-        _titleController.text.trim(),
-        _normalizeContentForApi(_thoughtsController.text.trim()),
-        formattedDate,
-        mood: _selectedMood.isNotEmpty ? _selectedMood : null,
-        imageFiles: _selectedImages.isNotEmpty ? _selectedImages : null,
-      );
+      // Determine if we're creating or updating
+      Map<String, dynamic> result;
+      if (_isEditMode) {
+        // Update existing journal with only modified fields
+        final journalId = _originalJournalData!['id'] as int;
+
+        // Determine which fields have changed
+        String? updatedTitle;
+        String? updatedContent;
+        String? updatedDate;
+        String? updatedMood;
+
+        if (_titleController.text.trim() !=
+            (_originalJournalData!['title'] ?? '')) {
+          updatedTitle = _titleController.text.trim();
+        }
+
+        String currentContent = _normalizeContentForApi(
+          _thoughtsController.text.trim(),
+        );
+        if (currentContent !=
+            _stripHtmlTags(_originalJournalData!['content'] ?? '')) {
+          updatedContent = currentContent;
+        }
+
+        if (formattedDate != _originalJournalData!['journal_date']) {
+          updatedDate = formattedDate;
+        }
+
+        if (_selectedMood != (_originalJournalData!['mood'] ?? '')) {
+          updatedMood = _selectedMood.isNotEmpty ? _selectedMood : null;
+        }
+
+        result = await ApiService.updateJournal(
+          token,
+          journalId,
+          title: updatedTitle,
+          content: updatedContent,
+          journalDate: updatedDate,
+          mood: updatedMood,
+          newImageFiles: _selectedImages.isNotEmpty ? _selectedImages : null,
+          imagesToDelete: _imagesToDelete.isNotEmpty ? _imagesToDelete : null,
+        );
+      } else {
+        // Create new journal entry
+        result = await ApiService.createJournal(
+          token,
+          _titleController.text.trim(),
+          _normalizeContentForApi(_thoughtsController.text.trim()),
+          formattedDate,
+          mood: _selectedMood.isNotEmpty ? _selectedMood : null,
+          imageFiles: _selectedImages.isNotEmpty ? _selectedImages : null,
+        );
+      }
 
       if (mounted) {
         if (result['success']) {
-          _showSuccess('Journal entry saved successfully!');
+          final successMessage = _isEditMode
+              ? 'Journal updated successfully!'
+              : 'Journal entry saved successfully!';
+          _showSuccess(successMessage);
           Future.delayed(const Duration(seconds: 1), () {
             if (mounted) {
               // Always return to home page with refresh signal
@@ -301,7 +441,7 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
         title: Text(
-          'New Journal Entry',
+          _isEditMode ? 'Edit Journal Entry' : 'New Journal Entry',
           style: TextStyle(
             color:
                 Theme.of(context).appBarTheme.foregroundColor ?? Colors.black,
@@ -667,106 +807,176 @@ class _JournalEntryPageState extends State<JournalEntryPage> {
                 ),
               ),
               const SizedBox(height: 6),
-              if (_selectedImages.isNotEmpty)
+              if (_selectedImages.isNotEmpty ||
+                  (_isEditMode && _originalImages.isNotEmpty))
                 Column(
                   children: [
-                    // Display selected images
-                    SizedBox(
-                      height: 120,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _selectedImages.length,
-                        itemBuilder: (context, index) {
-                          return Container(
-                            width: 90,
-                            margin: const EdgeInsets.only(right: 8),
+                    // Display existing images in edit mode
+                    if (_isEditMode && _originalImages.isNotEmpty)
+                      SizedBox(
+                        height: 120,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _originalImages.length,
+                          itemBuilder: (context, index) {
+                            final imageUrl = _originalImages[index];
+                            return Container(
+                              width: 90,
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: Colors.grey[300]!,
+                                  width: 1.0,
+                                ),
+                              ),
+                              child: Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: Image.network(
+                                      imageUrl,
+                                      width: 90,
+                                      height: 120,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                            return Container(
+                                              width: 90,
+                                              height: 120,
+                                              color: Colors.grey[200],
+                                              child: const Icon(
+                                                Icons.broken_image,
+                                                color: Colors.grey,
+                                              ),
+                                            );
+                                          },
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 4,
+                                    right: 4,
+                                    child: GestureDetector(
+                                      onTap: () => _removeOriginalImage(index),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.black54,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.close,
+                                          color: Colors.white,
+                                          size: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+
+                    // Display newly selected images
+                    if (_selectedImages.isNotEmpty)
+                      SizedBox(
+                        height: 120,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _selectedImages.length,
+                          itemBuilder: (context, index) {
+                            return Container(
+                              width: 90,
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: Colors.blue[300]!,
+                                  width: 2.0,
+                                ),
+                              ),
+                              child: Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: Image.file(
+                                      _selectedImages[index],
+                                      width: 90,
+                                      height: 120,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 4,
+                                    right: 4,
+                                    child: GestureDetector(
+                                      onTap: () => _removeImage(index),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.black54,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.close,
+                                          color: Colors.white,
+                                          size: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+
+                    // Add more images button
+                    if (_isEditMode && _originalImages.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: InkWell(
+                          onTap: _pickImage,
+                          borderRadius: BorderRadius.circular(6),
+                          child: Container(
+                            width: double.infinity,
+                            height: 40,
                             decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surface,
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
                                 color: Colors.grey[300]!,
                                 width: 1.0,
                               ),
                             ),
-                            child: Stack(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(6),
-                                  child: Image.file(
-                                    _selectedImages[index],
-                                    width: 90,
-                                    height: 120,
-                                    fit: BoxFit.cover,
-                                  ),
+                                Icon(
+                                  Icons.add_photo_alternate_outlined,
+                                  size: 20,
+                                  color: Theme.of(context).colorScheme.onSurface
+                                      .withValues(alpha: 0.6),
                                 ),
-                                Positioned(
-                                  top: 4,
-                                  right: 4,
-                                  child: GestureDetector(
-                                    onTap: () => _removeImage(index),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: const BoxDecoration(
-                                        color: Colors.black54,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.close,
-                                        color: Colors.white,
-                                        size: 12,
-                                      ),
-                                    ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Add More Images',
+                                  style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.6),
+                                    fontSize: 12,
                                   ),
                                 ),
                               ],
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    // Add more images button
-                    InkWell(
-                      onTap: _pickImage,
-                      borderRadius: BorderRadius.circular(6),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: Colors.grey[300]!,
-                            width: 1.0,
-                            style: BorderStyle.solid,
                           ),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.add_photo_alternate_outlined,
-                              size: 20,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withValues(alpha: 0.6),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Add More Images',
-                              style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withValues(alpha: 0.6),
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
-                    ),
                   ],
                 )
               else

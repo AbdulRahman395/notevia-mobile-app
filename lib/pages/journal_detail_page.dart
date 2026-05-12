@@ -98,6 +98,10 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
 
     try {
       final dateTime = DateTime.parse(dateString);
+
+      // Convert to PKT (UTC+5)
+      final pktDateTime = dateTime.toUtc().add(const Duration(hours: 5));
+
       final months = [
         'January',
         'February',
@@ -114,12 +118,12 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
       ];
 
       // Format hour to 12-hour format with am/pm
-      int hour = dateTime.hour;
+      int hour = pktDateTime.hour;
       String period = hour >= 12 ? 'pm' : 'am';
       if (hour > 12) hour -= 12;
       if (hour == 0) hour = 12;
 
-      return '${months[dateTime.month - 1]} ${dateTime.day}, ${dateTime.year} - $hour:${dateTime.minute.toString().padLeft(2, '0')} $period';
+      return '${months[pktDateTime.month - 1]} ${pktDateTime.day}, ${pktDateTime.year} - $hour:${pktDateTime.minute.toString().padLeft(2, '0')} $period (PKT)';
     } catch (e) {
       return dateString;
     }

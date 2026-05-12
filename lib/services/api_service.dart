@@ -623,6 +623,126 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> updateJournal(
+    String token,
+    int journalId, {
+    String? title,
+    String? content,
+    String? journalDate,
+    String? mood,
+    List<File>? newImageFiles,
+    List<String>? imagesToDelete,
+  }) async {
+    try {
+      print('Updating journal $journalId with token: $token');
+
+      // Create multipart request for file upload and data
+      var request = http.MultipartRequest(
+        'PATCH',
+        Uri.parse('$baseUrl/journals/$journalId'),
+      );
+
+      // Add headers
+      request.headers.addAll({
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+        'User-Agent': 'Notevia-Flutter-App',
+      });
+
+      // Add only non-null fields that have been modified
+      if (title != null) request.fields['title'] = title;
+      if (content != null) request.fields['content'] = content;
+      if (journalDate != null) request.fields['journalDate'] = journalDate;
+      if (mood != null) request.fields['mood'] = mood;
+
+      // Add images to delete if any
+      if (imagesToDelete != null && imagesToDelete.isNotEmpty) {
+        for (int i = 0; i < imagesToDelete.length; i++) {
+          request.fields['imagesToDelete[$i]'] = imagesToDelete[i];
+        }
+      }
+
+      // Add new image files if provided
+      if (newImageFiles != null && newImageFiles.isNotEmpty) {
+        print(
+          'Adding ${newImageFiles.length} new image files to update request',
+        );
+        for (var i = 0; i < newImageFiles.length; i++) {
+          var imageFile = newImageFiles[i];
+          print('Processing new image $i: ${imageFile.path}');
+
+          // Check if file exists
+          if (!await imageFile.exists()) {
+            print('ERROR: Image file does not exist: ${imageFile.path}');
+            continue;
+          }
+
+          try {
+            final stream = http.ByteStream(imageFile.openRead());
+            final length = await imageFile.length();
+            final multipartFile = http.MultipartFile(
+              'images',
+              stream,
+              length,
+              filename: imageFile.path.split('/').last,
+            );
+            request.files.add(multipartFile);
+          } catch (e) {
+            print('ERROR processing image $i: ${e.toString()}');
+            continue;
+          }
+        }
+      }
+
+      // Send the request
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 30),
+      );
+
+      // Get the response
+      final response = await http.Response.fromStream(streamedResponse);
+
+      print('Update journal response status: ${response.statusCode}');
+      print('Update journal response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': 'Journal updated successfully',
+          'data': jsonDecode(response.body),
+        };
+      } else if (response.statusCode == 401) {
+        await _handleUnauthorized();
+        return {
+          'success': false,
+          'message': 'Authentication expired. Please login again.',
+          'requires_auth_redirect': true,
+        };
+      } else {
+        return {
+          'success': false,
+          'message':
+              jsonDecode(response.body)['message'] ??
+              'Failed to update journal',
+          'error': response.body,
+        };
+      }
+    } on http.ClientException catch (e) {
+      print('Update journal ClientException: ${e.toString()}');
+      return {
+        'success': false,
+        'message': 'Connection failed while updating journal',
+        'error': e.toString(),
+      };
+    } catch (e) {
+      print('Update journal error: ${e.toString()}');
+      return {
+        'success': false,
+        'message': 'Journal update error: ${e.toString()}',
+      };
+    }
+  }
+
   static Future<Map<String, dynamic>> createJournal(
     String token,
     String title,
