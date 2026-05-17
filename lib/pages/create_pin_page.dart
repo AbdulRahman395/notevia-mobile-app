@@ -81,7 +81,7 @@ class _CreatePinPageState extends State<CreatePinPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue[600],
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -89,130 +89,127 @@ class _CreatePinPageState extends State<CreatePinPage> {
           onPressed: () {
             Navigator.of(context).pop();
           },
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
         ),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 40),
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight:
+                  MediaQuery.of(context).size.height -
+                  MediaQuery.of(context).padding.top -
+                  MediaQuery.of(context).padding.bottom,
+            ),
+            child: IntrinsicHeight(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 20),
 
-              // Icon
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(
-                  Icons.lock_outline,
-                  size: 40,
-                  color: Colors.blue[600],
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              // Title
-              const Text(
-                'Create PIN',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 15),
-
-              // Subtitle
-              Text(
-                'Create a 4-digit PIN for secure access to your account',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white.withOpacity(0.9),
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 50),
-
-              // PIN Input Fields
-              PinCodeTextField(
-                appContext: context,
-                controller: _pinController,
-                length: 4,
-                obscureText: true,
-                obscuringCharacter: '●',
-                blinkWhenObscuring: true,
-                animationType: AnimationType.fade,
-                keyboardType: TextInputType.number,
-                pinTheme: PinTheme(
-                  shape: PinCodeFieldShape.box,
-                  borderRadius: BorderRadius.circular(12),
-                  fieldHeight: 60,
-                  fieldWidth: 60,
-                  activeFillColor: Colors.white.withOpacity(0.3),
-                  selectedFillColor: Colors.white.withOpacity(0.4),
-                  inactiveFillColor: Colors.white.withOpacity(0.2),
-                  activeColor: Colors.white,
-                  selectedColor: Colors.white,
-                  inactiveColor: Colors.white.withOpacity(0.5),
-                  borderWidth: 2,
-                ),
-                enableActiveFill: true,
-                textStyle: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-                cursorColor: Colors.white,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                onCompleted: (pin) {
-                  _createPIN();
-                },
-                onChanged: (value) {
-                  // Optional: Handle real-time changes if needed
-                },
-              ),
-
-              const SizedBox(height: 40),
-
-              // Create PIN Button
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _createPIN,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.blue[600],
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    // Title
+                    const Text(
+                      'Create PIN',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    elevation: 2,
-                  ),
-                  child: _isLoading
-                      ? const CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.blue,
+
+                    const SizedBox(height: 10),
+
+                    // Subtitle
+                    const Text(
+                      'Create a 4-digit PIN for secure access to your account',
+                      style: TextStyle(fontSize: 16, color: Colors.black54),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    // PIN Input Fields
+                    PinCodeTextField(
+                      appContext: context,
+                      controller: _pinController,
+                      length: 4,
+                      obscureText: true,
+                      obscuringCharacter: '●',
+                      blinkWhenObscuring: true,
+                      animationType: AnimationType.fade,
+                      keyboardType: TextInputType.number,
+                      pinTheme: PinTheme(
+                        shape: PinCodeFieldShape.box,
+                        borderRadius: BorderRadius.circular(12),
+                        fieldHeight: 60,
+                        fieldWidth: 60,
+                        activeFillColor: Colors.grey[50],
+                        selectedFillColor: Colors.grey[50],
+                        inactiveFillColor: Colors.grey[50],
+                        activeColor: Colors.grey[300]!,
+                        selectedColor: Colors.blue[600]!,
+                        inactiveColor: Colors.grey[300]!,
+                        borderWidth: 2,
+                      ),
+                      enableActiveFill: true,
+                      textStyle: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                      cursorColor: Colors.black87,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      onCompleted: (pin) {
+                        _createPIN();
+                      },
+                      onChanged: (value) {
+                        // Optional: Handle real-time changes if needed
+                      },
+                    ),
+
+                    const SizedBox(height: 40),
+
+                    // Create PIN Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _createPIN,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue[600],
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        )
-                      : const Text(
-                          'Create PIN',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          elevation: 0,
                         ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'Create PIN',
+                                style: TextStyle(fontSize: 16),
+                              ),
+                      ),
+                    ),
+
+                    // Push content upward, matching verify pin layout
+                    const Spacer(),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
