@@ -187,6 +187,7 @@ class _HomePageState extends State<HomePage>
     // Refresh data when app comes to foreground
     if (state == AppLifecycleState.resumed) {
       _fetchData();
+      _fetchDashboardData();
     }
   }
 
@@ -333,6 +334,7 @@ class _HomePageState extends State<HomePage>
       // Refresh data if journal was successfully updated (result is true)
       if (result == true && mounted) {
         _fetchData(page: _currentPage);
+        _fetchDashboardData();
       }
     } else {
       print('No journal ID found, cannot edit');
@@ -743,6 +745,7 @@ class _HomePageState extends State<HomePage>
                                   // Refresh data if journal was successfully deleted (result is true)
                                   if (result == true && mounted) {
                                     _fetchData(page: _currentPage);
+                                    _fetchDashboardData();
                                   }
                                 }
                               },
@@ -1058,6 +1061,7 @@ class _HomePageState extends State<HomePage>
             // Refresh data if journal was successfully created (result is true)
             if (result == true && mounted) {
               _fetchData(page: _currentPage);
+              _fetchDashboardData();
             }
           },
           backgroundColor: Colors.blue[400],

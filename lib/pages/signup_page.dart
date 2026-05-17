@@ -15,6 +15,7 @@ class _SignupPageState extends State<SignupPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -80,7 +81,7 @@ class _SignupPageState extends State<SignupPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue[600],
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20.0),
@@ -89,26 +90,13 @@ class _SignupPageState extends State<SignupPage> {
             children: [
               const SizedBox(height: 40),
 
-              // Logo
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(Icons.note_alt, size: 40, color: Colors.blue[600]),
-              ),
-
-              const SizedBox(height: 30),
-
               // Title
               const Text(
                 'Create Account',
                 style: TextStyle(
-                  fontSize: 32,
+                  fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Colors.black87,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -116,16 +104,13 @@ class _SignupPageState extends State<SignupPage> {
               const SizedBox(height: 10),
 
               // Subtitle
-              Text(
-                'Join Notevia and start organizing your thoughts',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white.withOpacity(0.9),
-                ),
+              const Text(
+                'Sign up to get started with Notevia',
+                style: TextStyle(fontSize: 16, color: Colors.black54),
                 textAlign: TextAlign.center,
               ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 60),
 
               // Form
               Form(
@@ -136,20 +121,29 @@ class _SignupPageState extends State<SignupPage> {
                     TextFormField(
                       controller: _nameController,
                       decoration: InputDecoration(
-                        labelText: 'Full Name',
-                        labelStyle: const TextStyle(color: Colors.white),
+                        hintText: 'Full Name',
+                        hintStyle: const TextStyle(color: Colors.black54),
                         filled: true,
-                        fillColor: Colors.white.withOpacity(0.2),
+                        fillColor: Colors.grey[50],
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
+                          borderSide: BorderSide(color: Colors.grey[300]!),
                         ),
-                        prefixIcon: const Icon(
-                          Icons.person,
-                          color: Colors.white,
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.blue[600]!),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
                         ),
                       ),
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Colors.black87),
+                      textCapitalization: TextCapitalization.words,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your name';
@@ -164,20 +158,28 @@ class _SignupPageState extends State<SignupPage> {
                     TextFormField(
                       controller: _emailController,
                       decoration: InputDecoration(
-                        labelText: 'Email',
-                        labelStyle: const TextStyle(color: Colors.white),
+                        hintText: 'Email',
+                        hintStyle: const TextStyle(color: Colors.black54),
                         filled: true,
-                        fillColor: Colors.white.withOpacity(0.2),
+                        fillColor: Colors.grey[50],
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
+                          borderSide: BorderSide(color: Colors.grey[300]!),
                         ),
-                        prefixIcon: const Icon(
-                          Icons.email,
-                          color: Colors.white,
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.blue[600]!),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
                         ),
                       ),
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Colors.black87),
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -198,18 +200,43 @@ class _SignupPageState extends State<SignupPage> {
                     TextFormField(
                       controller: _passwordController,
                       decoration: InputDecoration(
-                        labelText: 'Password',
-                        labelStyle: const TextStyle(color: Colors.white),
+                        hintText: 'Password',
+                        hintStyle: const TextStyle(color: Colors.black54),
                         filled: true,
-                        fillColor: Colors.white.withOpacity(0.2),
+                        fillColor: Colors.grey[50],
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
+                          borderSide: BorderSide(color: Colors.grey[300]!),
                         ),
-                        prefixIcon: const Icon(Icons.lock, color: Colors.white),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.blue[600]!),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: Colors.black54,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                        ),
                       ),
-                      style: const TextStyle(color: Colors.white),
-                      obscureText: true,
+                      style: const TextStyle(color: Colors.black87),
+                      obscureText: _obscurePassword,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your password';
@@ -221,34 +248,36 @@ class _SignupPageState extends State<SignupPage> {
                       },
                     ),
 
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 30),
 
-                    // Signup Button
+                    // Sign Up Button
                     SizedBox(
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _signup,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.blue[600],
+                          backgroundColor: Colors.blue[600],
+                          foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          elevation: 2,
+                          elevation: 0,
                         ),
                         child: _isLoading
-                            ? const CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.blue,
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.blue,
+                                  ),
+                                  strokeWidth: 2,
                                 ),
                               )
                             : const Text(
                                 'Sign Up',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: TextStyle(fontSize: 16),
                               ),
                       ),
                     ),
@@ -259,11 +288,9 @@ class _SignupPageState extends State<SignupPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
+                        const Text(
                           'Already have an account? ',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
-                          ),
+                          style: TextStyle(color: Colors.black54),
                         ),
                         GestureDetector(
                           onTap: () {
@@ -271,12 +298,11 @@ class _SignupPageState extends State<SignupPage> {
                               context,
                             ).pushReplacementNamed('/signin');
                           },
-                          child: const Text(
+                          child: Text(
                             'Sign In',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: Colors.blue[600],
                               fontWeight: FontWeight.bold,
-                              decoration: TextDecoration.underline,
                             ),
                           ),
                         ),
