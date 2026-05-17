@@ -20,7 +20,10 @@ class _CreatePinPageState extends State<CreatePinPage> {
 
   @override
   void dispose() {
-    _pinController.dispose();
+    final controller = _pinController;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+    });
     super.dispose();
   }
 
@@ -87,7 +90,10 @@ class _CreatePinPageState extends State<CreatePinPage> {
         elevation: 0,
         leading: IconButton(
           onPressed: () {
-            Navigator.of(context).pop();
+            Navigator.of(context).pushReplacementNamed(
+              '/pin-verification',
+              arguments: widget.token,
+            );
           },
           icon: const Icon(Icons.arrow_back, color: Colors.black87),
         ),

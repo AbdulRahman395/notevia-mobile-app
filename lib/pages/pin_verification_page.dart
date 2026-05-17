@@ -50,7 +50,10 @@ class _PinVerificationPageState extends State<PinVerificationPage> {
 
   @override
   void dispose() {
-    _pinController.dispose();
+    final controller = _pinController;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+    });
     super.dispose();
   }
 
@@ -115,7 +118,7 @@ class _PinVerificationPageState extends State<PinVerificationPage> {
         elevation: 0,
         leading: IconButton(
           onPressed: () {
-            Navigator.of(context).pop();
+            Navigator.of(context).pushReplacementNamed('/signin');
           },
           icon: const Icon(Icons.arrow_back, color: Colors.black87),
         ),
