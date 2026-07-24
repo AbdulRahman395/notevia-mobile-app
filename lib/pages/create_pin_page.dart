@@ -84,7 +84,7 @@ class _CreatePinPageState extends State<CreatePinPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -95,7 +95,7 @@ class _CreatePinPageState extends State<CreatePinPage> {
               arguments: widget.token,
             );
           },
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: Icon(Icons.arrow_back, color: Colors.grey[800]),
         ),
       ),
       body: SafeArea(
@@ -109,33 +109,62 @@ class _CreatePinPageState extends State<CreatePinPage> {
             ),
             child: IntrinsicHeight(
               child: Padding(
-                padding: const EdgeInsets.all(20.0),
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 20),
 
+                    // Icon badge
+                    Center(
+                      child: Container(
+                        width: 76,
+                        height: 76,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Colors.blue[400]!, Colors.blue[600]!],
+                          ),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.blue.withValues(alpha: 0.25),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.lock_outline,
+                          color: Colors.white,
+                          size: 34,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
                     // Title
                     const Text(
                       'Create PIN',
                       style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
                       ),
                       textAlign: TextAlign.center,
                     ),
 
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
 
                     // Subtitle
-                    const Text(
+                    Text(
                       'Create a 4-digit PIN for secure access to your account',
-                      style: TextStyle(fontSize: 16, color: Colors.black54),
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       textAlign: TextAlign.center,
                     ),
 
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 32),
 
                     // PIN Input Fields
                     PinCodeTextField(
@@ -149,24 +178,23 @@ class _CreatePinPageState extends State<CreatePinPage> {
                       keyboardType: TextInputType.number,
                       pinTheme: PinTheme(
                         shape: PinCodeFieldShape.box,
-                        borderRadius: BorderRadius.circular(12),
-                        fieldHeight: 60,
-                        fieldWidth: 60,
+                        borderRadius: BorderRadius.circular(14),
+                        fieldHeight: 58,
+                        fieldWidth: 58,
                         activeFillColor: Colors.grey[50],
-                        selectedFillColor: Colors.grey[50],
+                        selectedFillColor: Colors.blue[50],
                         inactiveFillColor: Colors.grey[50],
                         activeColor: Colors.grey[300]!,
-                        selectedColor: Colors.blue[600]!,
+                        selectedColor: Colors.blue[500]!,
                         inactiveColor: Colors.grey[300]!,
                         borderWidth: 2,
                       ),
                       enableActiveFill: true,
                       textStyle: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
                       ),
-                      cursorColor: Colors.black87,
+                      cursorColor: Colors.blue[500],
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       onCompleted: (pin) {
                         _createPIN();
@@ -176,36 +204,39 @@ class _CreatePinPageState extends State<CreatePinPage> {
                       },
                     ),
 
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 36),
 
                     // Create PIN Button
                     SizedBox(
                       width: double.infinity,
-                      height: 50,
+                      height: 54,
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _createPIN,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[600],
+                          backgroundColor: Colors.blue[500],
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                           elevation: 0,
                         ),
                         child: _isLoading
                             ? const SizedBox(
-                                width: 16,
-                                height: 16,
+                                width: 20,
+                                height: 20,
                                 child: CircularProgressIndicator(
                                   valueColor: AlwaysStoppedAnimation<Color>(
                                     Colors.white,
                                   ),
-                                  strokeWidth: 2,
+                                  strokeWidth: 2.5,
                                 ),
                               )
                             : const Text(
                                 'Create PIN',
-                                style: TextStyle(fontSize: 16),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                       ),
                     ),

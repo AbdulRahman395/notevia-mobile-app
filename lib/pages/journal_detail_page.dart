@@ -78,33 +78,35 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
     }
   }
 
+  // Mood emoji + color mapping kept in sync with the rest of the app
+  // ('Happy'/'Sad'/'Calm'/'Neutral').
   String _getMoodEmoji(String mood) {
     switch (mood.toLowerCase()) {
       case 'happy':
-        return '😍';
+        return '😊';
       case 'sad':
         return '😢';
+      case 'calm':
+        return '😌';
       case 'neutral':
         return '😐';
-      case 'calm':
-        return '☺️';
       default:
         return '';
     }
   }
 
-  Color _getMoodBackgroundColor(String mood) {
+  Color _getMoodColor(String mood) {
     switch (mood.toLowerCase()) {
       case 'happy':
-        return const Color(0xFF81C784); // More vibrant green
+        return const Color(0xFF66BB6A);
       case 'sad':
-        return const Color(0xFFE57373); // More vibrant red
-      case 'neutral':
-        return const Color(0xFF90A4AE); // More vibrant blue-grey
+        return const Color(0xFF5C9CE6);
       case 'calm':
-        return const Color(0xFF64B5F6); // More vibrant sky blue
+        return const Color(0xFF4FC3C7);
+      case 'neutral':
+        return const Color(0xFF9E9E9E);
       default:
-        return Colors.amber[200]!; // More visible default color
+        return Colors.amber[600]!;
     }
   }
 
@@ -217,205 +219,252 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
     ToasterService.showError(context, message);
   }
 
+  // ---- UI building blocks -------------------------------------------------
+
+  Widget _sectionCard({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _sectionLabel(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.blue[400]),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    Widget? action,
+  }) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 40, color: Colors.blue[300]),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
+          ],
+          if (action != null) ...[const SizedBox(height: 20), action],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderCard() {
+    final mood = (_journal!['mood'] ?? '').toString();
+    final hasMood = mood.isNotEmpty;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Colors.blue[400]!, Colors.blue[600]!],
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _journal!['title'] ?? 'Untitled',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _formatDate(_journal!['journal_date'] ?? _journal!['created_at']),
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+          if (hasMood) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _getMoodEmoji(mood),
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    mood,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
-          icon: Icon(
-            Icons.arrow_back,
-            color: Theme.of(context).appBarTheme.foregroundColor,
-          ),
+          icon: Icon(Icons.arrow_back, color: Colors.grey[800]),
         ),
         title: Text(
           'Details',
           style: TextStyle(
-            color: Theme.of(context).appBarTheme.foregroundColor,
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.w600,
-            fontSize: 20,
+            fontSize: 16,
           ),
         ),
         actions: [
           IconButton(
             onPressed: _fetchJournal,
-            icon: Icon(
-              Icons.refresh,
-              color: Theme.of(context).appBarTheme.foregroundColor,
-            ),
+            icon: Icon(Icons.refresh, color: Colors.blue[400]),
+            tooltip: 'Refresh',
           ),
-          IconButton(
-            onPressed: _showDeleteConfirmation,
-            icon: Icon(Icons.delete_outline, color: Colors.red),
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton(
+              onPressed: _showDeleteConfirmation,
+              icon: Icon(Icons.delete_outline, color: Colors.red[300]),
+              tooltip: 'Delete',
+            ),
           ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: Colors.blue[400]))
           : _hasError
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withOpacity(0.4),
+          ? _buildEmptyState(
+              icon: Icons.error_outline,
+              title: 'Error loading journal',
+              subtitle: _errorMessage,
+              action: ElevatedButton(
+                onPressed: _fetchJournal,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue[500],
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Error loading journal',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withOpacity(0.6),
-                      fontWeight: FontWeight.w500,
-                    ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _errorMessage,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withOpacity(0.5),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: _fetchJournal,
-                    child: const Text('Try Again'),
-                  ),
-                ],
+                ),
+                child: const Text('Try Again'),
               ),
             )
           : _journal == null
-          ? const Center(child: Text('Journal not found'))
+          ? _buildEmptyState(
+              icon: Icons.menu_book_outlined,
+              title: 'Journal not found',
+            )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title
-                  Text(
-                    _journal!['title'] ?? 'Untitled',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                  // Header — title, date, mood
+                  _buildHeaderCard(),
+                  const SizedBox(height: 20),
 
                   // Content
-                  Container(
-                    padding: const EdgeInsets.all(20.0),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
-                          spreadRadius: 1,
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
+                  _sectionCard(
+                    child: Html(
+                      data: _formatContentForHtml(_journal!['content'] ?? ''),
+                      style: {
+                        "body": Style(
+                          fontSize: FontSize(14),
+                          lineHeight: const LineHeight(1.6),
+                          color: Theme.of(context).colorScheme.onSurface,
+                          margin: Margins.zero,
+                          padding: HtmlPaddings.zero,
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Html(
-                          data: _formatContentForHtml(
-                            _journal!['content'] ?? '',
-                          ),
-                          style: {
-                            "body": Style(
-                              fontSize: FontSize(14),
-                              lineHeight: const LineHeight(1.6),
-                              color: Theme.of(context).colorScheme.onSurface,
-                              margin: Margins.zero,
-                              padding: HtmlPaddings.zero,
-                            ),
-                            "p": Style(margin: Margins.only(bottom: 16)),
-                            "strong": Style(fontWeight: FontWeight.bold),
-                            "em": Style(fontStyle: FontStyle.italic),
-                          },
-                        ),
-
-                        // Mood display
-                        if (_journal!['mood'] != null &&
-                            _journal!['mood'].toString().isNotEmpty) ...[
-                          const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _getMoodBackgroundColor(
-                                    _journal!['mood'].toString(),
-                                  ).withOpacity(0.3),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  '${_journal!['mood']} ${_getMoodEmoji(_journal!['mood'].toString())}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[700]!,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ],
+                        "p": Style(margin: Margins.only(bottom: 16)),
+                        "strong": Style(fontWeight: FontWeight.bold),
+                        "em": Style(fontStyle: FontStyle.italic),
+                      },
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
                   // Media Images
                   if (_journal!['media'] != null &&
                       _journal!['media'] is List &&
-                      (_journal!['media'] as List).isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.all(20.0),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.1),
-                            spreadRadius: 1,
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
+                      (_journal!['media'] as List).isNotEmpty) ...[
+                    _sectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Photos',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                          ),
+                          _sectionLabel(Icons.photo_outlined, 'Photos'),
                           const SizedBox(height: 16),
-                          // Display images in a grid
                           GridView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
@@ -446,37 +495,29 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
                                 child: Hero(
                                   tag: 'journal_image_${media['id']}_$index',
                                   child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(14),
                                     child: Image.network(
                                       imageUrl,
                                       fit: BoxFit.cover,
                                       errorBuilder:
                                           (context, error, stackTrace) {
                                             return Container(
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.surface,
+                                              color: Colors.grey[100],
                                               child: Column(
                                                 mainAxisAlignment:
                                                     MainAxisAlignment.center,
                                                 children: [
                                                   Icon(
                                                     Icons.broken_image,
-                                                    size: 40,
-                                                    color: Theme.of(context)
-                                                        .colorScheme
-                                                        .onSurface
-                                                        .withOpacity(0.4),
+                                                    size: 32,
+                                                    color: Colors.grey[400],
                                                   ),
                                                   const SizedBox(height: 8),
                                                   Text(
                                                     'Image not available',
                                                     style: TextStyle(
-                                                      fontSize: 12,
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .onSurface
-                                                          .withOpacity(0.5),
+                                                      fontSize: 11,
+                                                      color: Colors.grey[500],
                                                     ),
                                                     textAlign: TextAlign.center,
                                                   ),
@@ -485,14 +526,14 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
                                             );
                                           },
                                       loadingBuilder: (context, child, loadingProgress) {
-                                        if (loadingProgress == null)
+                                        if (loadingProgress == null) {
                                           return child;
+                                        }
                                         return Container(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.surface,
+                                          color: Colors.grey[100],
                                           child: Center(
                                             child: CircularProgressIndicator(
+                                              strokeWidth: 2,
                                               value:
                                                   loadingProgress
                                                           .expectedTotalBytes !=
@@ -519,51 +560,112 @@ class _JournalDetailPageState extends State<JournalDetailPage> {
                         ],
                       ),
                     ),
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 20),
+                  ],
 
                   // Metadata
                   if (_journal!['created_at'] != null)
-                    Container(
-                      padding: const EdgeInsets.all(16.0),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                    _sectionCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          _sectionLabel(
+                            Icons.info_outline,
                             'Journal Information',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withOpacity(0.8),
-                            ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Created On: ${_formatDate(_journal!['created_at'])}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withOpacity(0.6),
-                            ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue[50],
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  Icons.calendar_today_outlined,
+                                  size: 16,
+                                  color: Colors.blue[400],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Created On',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.5),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      _formatDate(_journal!['created_at']),
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                           if (_journal!['updated_at'] != null &&
                               _journal!['updated_at'] !=
-                                  _journal!['created_at'])
-                            Text(
-                              'Updated: ${_formatDate(_journal!['updated_at'])}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withOpacity(0.6),
-                              ),
+                                  _journal!['created_at']) ...[
+                            const SizedBox(height: 14),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue[50],
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(
+                                    Icons.update_outlined,
+                                    size: 16,
+                                    color: Colors.blue[400],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Updated',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withValues(alpha: 0.5),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        _formatDate(_journal!['updated_at']),
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
+                          ],
                         ],
                       ),
                     ),
