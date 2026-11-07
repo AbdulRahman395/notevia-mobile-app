@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/tokens.dart';
 
 class ToasterService {
   static OverlayEntry? _overlayEntry;
@@ -79,15 +80,15 @@ class _ToasterWidgetState extends State<_ToasterWidget>
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
+      duration: NvMotion.short,
       vsync: this,
     );
 
-    _slideAnimation = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.4), end: Offset.zero)
         .animate(
           CurvedAnimation(
             parent: _animationController,
-            curve: Curves.easeOutBack,
+            curve: NvMotion.ease,
           ),
         );
 
@@ -106,76 +107,57 @@ class _ToasterWidgetState extends State<_ToasterWidget>
 
   @override
   Widget build(BuildContext context) {
+    final c = context.nv;
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+    final iconColor = switch (widget.type) {
+      ToasterType.success => c.success,
+      ToasterType.error => c.danger,
+      ToasterType.info => c.accent,
+    };
     return Positioned(
-      bottom: keyboardHeight > 0
-          ? keyboardHeight + 20
-          : 50, // Above keyboard or default position
-      left: 0,
-      right: 0,
+      bottom: (keyboardHeight > 0 ? keyboardHeight : safeBottom) + NvSpace.md,
+      left: NvSpace.gutter,
+      right: NvSpace.gutter,
       child: Center(
         child: FadeTransition(
           opacity: _fadeAnimation,
           child: SlideTransition(
             position: _slideAnimation,
-            child: Container(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.8,
-                minWidth: 100,
-              ),
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: _getBackgroundColor(),
-                borderRadius: BorderRadius.circular(
-                  20,
-                ), // Smaller capsule shape
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+            child: Semantics(
+              liveRegion: true,
+              child: Material(
+                type: MaterialType.transparency,
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 440),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: c.surface2,
+                    borderRadius: BorderRadius.circular(NvRadius.control),
+                    border: Border.all(color: c.line),
                   ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(_getIcon(), color: Colors.white, size: 16),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      widget.message,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        decoration:
-                            TextDecoration.none, // Remove any underlining
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(_getIcon(), color: iconColor, size: 18),
+                      const SizedBox(width: 10),
+                      Flexible(
+                        child: Text(
+                          widget.message,
+                          style: NvText.small.copyWith(color: c.fg),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
         ),
       ),
     );
-  }
-
-  Color _getBackgroundColor() {
-    switch (widget.type) {
-      case ToasterType.success:
-        return const Color(0xFF424242); // Dark grey
-      case ToasterType.error:
-        return const Color(0xFF424242); // Dark grey
-      case ToasterType.info:
-        return const Color(0xFF424242); // Dark grey
-    }
   }
 
   IconData _getIcon() {

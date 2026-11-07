@@ -277,6 +277,66 @@ class ApiService {
     }
   }
 
+  /// Continue with Google: swaps a Google ID token for the same login token as /auth/login.
+  static Future<Map<String, dynamic>> googleLogin(String idToken) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/auth/google'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'idToken': idToken}),
+          )
+          .timeout(const Duration(seconds: 15));
+      final body = jsonDecode(response.body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true, 'data': body};
+      }
+      final message = body is Map ? body['message'] : null;
+      return {
+        'success': false,
+        'message': (message is List ? message.join(' ') : message) ?? 'Google sign-in failed. Try again.',
+      };
+    } catch (_) {
+      return {'success': false, 'message': 'Couldn’t reach Notevia. Check your connection and try again.'};
+    }
+  }
+
+  // POST with the sign-in token; returns {success, message, data}
+  static Future<Map<String, dynamic>> _postJson(String path, String token, Map<String, dynamic> body) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl$path'),
+            headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 15));
+      dynamic data;
+      try {
+        data = jsonDecode(response.body);
+      } catch (_) {}
+      final raw = data is Map ? data['message'] : null;
+      final message = raw is List ? raw.join(' ') : raw?.toString();
+      if (response.statusCode == 401) {
+        return {'success': false, 'message': 'Your sign-in expired. Sign in again.', 'requires_login_redirect': true};
+      }
+      final ok = response.statusCode >= 200 && response.statusCode < 300 && !(data is Map && data['success'] == false);
+      return {'success': ok, 'message': message, 'data': data};
+    } catch (_) {
+      return {'success': false, 'message': 'Couldn’t reach Notevia. Check your connection and try again.'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> changePin(String token, String currentPin, String newPin) =>
+      _postJson('/pin/change-pin', token, {'currentPin': currentPin, 'newPin': newPin});
+
+  /// Emails a code for resetting the PIN
+  static Future<Map<String, dynamic>> forgetPin(String token, String email) =>
+      _postJson('/pin/forget-pin', token, {'email': email});
+
+  static Future<Map<String, dynamic>> resetPin(String token, String email, String otp, String newPin) =>
+      _postJson('/pin/reset-pin', token, {'email': email, 'otp': otp, 'newPin': newPin});
+
   static Future<Map<String, dynamic>> createPIN(
     String token,
     String pin,
@@ -394,7 +454,7 @@ class ApiService {
 
       String url = '$baseUrl/journals?page=$page&limit=$limit';
       if (search != null && search.isNotEmpty) {
-        url += '&search=$search';
+        url += '&search=${Uri.encodeQueryComponent(search)}';
       }
 
       final response = await http
@@ -1212,6 +1272,41 @@ class ApiService {
         'success': false,
         'message': 'Dashboard fetch error: ${e.toString()}',
       };
+    }
+  }
+
+  /// Day-by-day writing history for one month: [{date, type, count}]
+  static Future<Map<String, dynamic>> getStreakHistory(
+    String token,
+    int month,
+    int year,
+  ) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/streaks/history?month=$month&year=$year'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+              'User-Agent': 'Notevia-Flutter-App',
+            },
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true, 'data': jsonDecode(response.body)};
+      } else if (response.statusCode == 401) {
+        await _handleUnauthorized();
+        return {
+          'success': false,
+          'message': 'Authentication expired. Please login again.',
+          'requires_auth_redirect': true,
+        };
+      }
+      return {'success': false, 'message': 'Failed to fetch activity'};
+    } catch (e) {
+      return {'success': false, 'message': 'Activity fetch error: $e'};
     }
   }
 }

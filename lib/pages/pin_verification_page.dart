@@ -1,285 +1,167 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:pin_code_fields/pin_code_fields.dart';
+import '../app_navigator.dart';
 import '../services/api_service.dart';
-import '../services/token_service.dart';
-import '../services/app_lock_service.dart';
-import '../services/heartbeat_service.dart';
-import '../services/toaster_service.dart';
+import '../services/biometric_service.dart';
+import '../services/draft_service.dart';
+import '../services/session.dart';
+import '../ui/nv.dart';
+import 'change_pin_page.dart';
 
-class PinVerificationPage extends StatefulWidget {
+/// "Enter PIN" after signing in. The same screen covers the app when it locks.
+class PinVerificationPage extends StatelessWidget {
   final String token;
 
   const PinVerificationPage({super.key, required this.token});
 
   @override
-  State<PinVerificationPage> createState() => _PinVerificationPageState();
+  Widget build(BuildContext context) => LockScreen(authToken: token);
 }
 
-class _PinVerificationPageState extends State<PinVerificationPage> {
-  final TextEditingController _pinController = TextEditingController();
-  final AppLockService _appLockService = AppLockService();
-  final HeartbeatService _heartbeatService = HeartbeatService();
+class LockScreen extends StatefulWidget {
+  const LockScreen({super.key, this.authToken, this.overlay = false});
+
+  /// Login token, used on the route to check the account has a PIN
+  final String? authToken;
+
+  /// True when shown over the app (no Navigator above it)
+  final bool overlay;
+
+  @override
+  State<LockScreen> createState() => _LockScreenState();
+}
+
+class _LockScreenState extends State<LockScreen> {
+  final _pad = GlobalKey<NvPinPadState>();
+  PhoneUnlockInfo _phone = PhoneUnlockInfo.none;
+  bool _phoneEnabled = false;
+  bool _checking = true;
+  bool _forgot = false;
 
   @override
   void initState() {
     super.initState();
-    _checkPinStatus();
+    _init();
   }
 
-  Future<void> _checkPinStatus() async {
-    try {
-      final result = await ApiService.hasPin(widget.token);
-
+  Future<void> _init() async {
+    if (!widget.overlay && widget.authToken != null && widget.authToken!.isNotEmpty) {
+      final result = await ApiService.hasPin(widget.authToken!);
+      if (!mounted) return;
       if (result['requires_login_redirect'] == true) {
-        if (mounted) {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil('/signin', (Route<dynamic> route) => false);
-        }
+        appNavigatorKey.currentState?.pushNamedAndRemoveUntil('/signin', (r) => false);
         return;
       }
-
-      if (!result['success']) {
-        print('Failed to check PIN status: ${result['message']}');
+      final data = result['data'];
+      if (result['success'] == true && data is Map && data['hasPin'] == false) {
+        appNavigatorKey.currentState?.pushReplacementNamed('/create-pin', arguments: widget.authToken);
+        return;
       }
-    } catch (e) {
-      print('Error checking PIN status: $e');
     }
-  }
-
-  @override
-  void dispose() {
-    final controller = _pinController;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.dispose();
+    final enabled = await BiometricService.isEnabled();
+    final info = enabled ? await BiometricService.info() : PhoneUnlockInfo.none;
+    if (!mounted) return;
+    setState(() {
+      _phoneEnabled = enabled && info.available;
+      _phone = info;
+      _checking = false;
     });
-    super.dispose();
+    if (_phoneEnabled) _usePhone();
   }
 
-  void _verifyPIN() async {
-    final pin = _pinController.text;
-    if (pin.length != 4) {
-      _showError('Please enter all 4 digits');
-      return;
+  Future<String?> _submit(String pin) async {
+    final error = await Session.verifyPin(pin);
+    if (error == null) {
+      // The PIN changed since phone unlock was set up: save the new one
+      // (one fingerprint check) so phone unlock keeps working.
+      if (await BiometricService.isStale()) await BiometricService.resync(pin);
+      _opened();
     }
+    return error;
+  }
 
-    try {
-      final result = await ApiService.verifyPIN(widget.token, pin);
-
-      if (mounted) {
-        if (result['success']) {
-          // Store access token from PIN verification response
-          final accessToken =
-              result['data']['accessToken'] ?? result['data']['token'] ?? '';
-          if (accessToken.isNotEmpty) {
-            await TokenService.storeAccessToken(accessToken);
-
-            // Update HeartbeatService with new token
-            _heartbeatService.updateToken(accessToken);
-          }
-
-          // Notify AppLockService that PIN was verified successfully
-          _appLockService.unlockAfterPinVerification();
-
-          _showSuccess('PIN verified successfully!');
-          Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) {
-              Navigator.of(context).pushReplacementNamed('/home');
-            }
-          });
-        } else {
-          _showError(result['message']);
-          _pinController.clear();
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        _showError('PIN verification failed: ${e.toString()}');
-        _pinController.clear();
-      }
+  Future<void> _usePhone() async {
+    final error = await Session.unlockWithPhone();
+    if (!mounted) return;
+    if (error == null) {
+      _opened();
+    } else if (error.isNotEmpty) {
+      setState(() => _phoneEnabled = false);
+      _pad.currentState?.reset(error: error);
     }
   }
 
-  void _showError(String message) {
-    ToasterService.showError(context, message);
+  void _opened() {
+    // As an overlay the lock simply lifts; as a route, go to the journal
+    final nav = appNavigatorKey.currentState;
+    if (!widget.overlay && nav != null) DraftService.openHome(nav);
   }
 
-  void _showSuccess(String message) {
-    ToasterService.showSuccess(context, message);
+  Future<void> _signOut() async {
+    final nav = appNavigatorKey.currentState;
+    if (nav != null) await Session.signOut(nav);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () {
-            Navigator.of(context).pushReplacementNamed('/signin');
-          },
-          icon: Icon(Icons.arrow_back, color: Colors.grey[800]),
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight:
-                  MediaQuery.of(context).size.height -
-                  MediaQuery.of(context).padding.top -
-                  MediaQuery.of(context).padding.bottom,
-            ),
-            child: IntrinsicHeight(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 20),
-
-                    // Icon badge
-                    Center(
-                      child: Container(
-                        width: 76,
-                        height: 76,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [Colors.blue[400]!, Colors.blue[600]!],
-                          ),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.blue.withValues(alpha: 0.25),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.lock_outline,
-                          color: Colors.white,
-                          size: 34,
-                        ),
+    final c = context.nv;
+    if (_forgot) {
+      return ForgotPinView(
+        onCancel: () => setState(() => _forgot = false),
+        onDone: () {
+          setState(() => _forgot = false);
+          _opened();
+        },
+      );
+    }
+    return Material(
+      color: c.bg,
+      child: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: NvSpace.lg),
+                  child: Column(
+                    children: [
+                      const Spacer(flex: 2),
+                      const SizedBox(height: NvSpace.lg),
+                      const NvMark(size: 44),
+                      const SizedBox(height: NvSpace.md),
+                      Text(
+                        widget.overlay ? 'Notevia is locked' : 'Enter your PIN',
+                        style: NvText.title.copyWith(color: c.fg),
                       ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Title
-                    const Text(
-                      'Enter PIN',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
+                      const SizedBox(height: NvSpace.xxs),
+                      Text(
+                        _phoneEnabled
+                            ? 'Use your ${_phone.label} or your PIN'
+                            : 'Enter your 4-digit Notevia PIN',
+                        style: NvText.small.copyWith(color: c.muted),
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    // Subtitle
-                    Text(
-                      'Enter your 4-digit PIN to access your account',
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // PIN Input Fields
-                    PinCodeTextField(
-                      appContext: context,
-                      controller: _pinController,
-                      length: 4,
-                      obscureText: true,
-                      obscuringCharacter: '●',
-                      blinkWhenObscuring: true,
-                      animationType: AnimationType.fade,
-                      keyboardType: TextInputType.number,
-                      pinTheme: PinTheme(
-                        shape: PinCodeFieldShape.box,
-                        borderRadius: BorderRadius.circular(14),
-                        fieldHeight: 58,
-                        fieldWidth: 58,
-                        activeFillColor: Colors.grey[50],
-                        selectedFillColor: Colors.blue[50],
-                        inactiveFillColor: Colors.grey[50],
-                        activeColor: Colors.grey[300]!,
-                        selectedColor: Colors.blue[500]!,
-                        inactiveColor: Colors.grey[300]!,
-                        borderWidth: 2,
+                      const SizedBox(height: NvSpace.xl),
+                      NvPinPad(
+                        key: _pad,
+                        enabled: !_checking || widget.overlay,
+                        onSubmit: _submit,
+                        onBiometric: _phoneEnabled ? _usePhone : null,
+                        biometricIcon: _phone.icon,
+                        biometricLabel: 'Unlock with ${_phone.label}',
                       ),
-                      enableActiveFill: true,
-                      textStyle: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
+                      const Spacer(flex: 3),
+                      TextButton(
+                        onPressed: () => setState(() => _forgot = true),
+                        child: const Text('Forgot PIN?'),
                       ),
-                      cursorColor: Colors.blue[500],
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      onCompleted: (pin) {
-                        _verifyPIN();
-                      },
-                      onChanged: (value) {
-                        // Optional: Handle real-time changes if needed
-                      },
-                    ),
-
-                    const SizedBox(height: 36),
-
-                    // Forgot PIN
-                    Center(
-                      child: TextButton(
-                        onPressed: () {
-                          // TODO: Implement forgot PIN functionality
-                          _showError(
-                            'Forgot PIN functionality not implemented yet',
-                          );
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.blue[500],
-                        ),
-                        child: const Text(
-                          'Forgot PIN?',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
+                      TextButton(
+                        onPressed: _signOut,
+                        style: TextButton.styleFrom(foregroundColor: c.muted),
+                        child: const Text('Sign out'),
                       ),
-                    ),
-
-                    const SizedBox(height: 4),
-
-                    // Create PIN
-                    Center(
-                      child: TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pushReplacementNamed(
-                            '/create-pin',
-                            arguments: widget.token,
-                          );
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.blue[500],
-                        ),
-                        child: const Text(
-                          'Create New PIN',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Add flexible space at the bottom
-                    const Spacer(),
-                  ],
+                      const SizedBox(height: NvSpace.xs),
+                    ],
+                  ),
                 ),
               ),
             ),

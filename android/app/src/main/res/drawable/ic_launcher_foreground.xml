@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Notevia mark (›_), same paths as the web app icon. Vector, so it stays sharp at every density. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:translateX="20.52"
+        android:translateY="20.52"
+        android:scaleX="1.674"
+        android:scaleY="1.674">
+        <path
+            android:pathData="M11,14l6,6l-6,6"
+            android:strokeColor="#82AAFF"
+            android:strokeWidth="3"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M20,27h9"
+            android:strokeColor="#F4F7FF"
+            android:strokeWidth="3"
+            android:strokeLineCap="round" />
+    </group>
+</vector>

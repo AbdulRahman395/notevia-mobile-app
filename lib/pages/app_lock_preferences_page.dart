@@ -1,18 +1,14 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import '../services/token_service.dart';
 import '../services/app_lock_service.dart';
+import '../services/biometric_service.dart';
+import '../services/session.dart';
+import '../services/token_service.dart';
 import '../services/toaster_service.dart';
+import '../ui/nv.dart';
 
-enum AppLockOption {
-  immediately,
-  oneMinute,
-  fiveMinutes,
-  tenMinutes,
-  thirtyMinutes,
-  off,
-}
-
+/// App lock settings, laid out like WhatsApp's: phone unlock on top,
+/// then how soon Notevia locks itself. Changes save as you tap.
 class AppLockPreferencesPage extends StatefulWidget {
   const AppLockPreferencesPage({super.key});
 
@@ -21,255 +17,169 @@ class AppLockPreferencesPage extends StatefulWidget {
 }
 
 class _AppLockPreferencesPageState extends State<AppLockPreferencesPage> {
-  AppLockOption _selectedOption = AppLockOption.immediately;
-  AppLockOption _tempSelectedOption = AppLockOption.immediately;
-  bool _hasChanges = false;
-  final AppLockService _appLockService = AppLockService();
+  final _lock = AppLockService();
+  PhoneUnlockInfo _phone = PhoneUnlockInfo.none;
+  bool _phoneOn = false;
+  bool _phoneBusy = false;
+  late String _preference = _lock.preference;
+  String? _savingPreference;
 
   @override
   void initState() {
     super.initState();
-    _loadCurrentPreferences();
+    _load();
   }
 
-  Future<void> _loadCurrentPreferences() async {
-    try {
-      // Get token
-      final token = await TokenService.getAccessToken();
-      if (token == null) {
-        print('No token available for API call');
-        return;
-      }
-
-      // Get current preferences
-      final result = await ApiService.getLockPreferences(token);
-
-      if (result['success'] == true && result['data'] != null) {
-        final preferenceValue = result['data']['preferences'] ?? 'immediately';
-        AppLockOption currentOption = _getAppLockOptionFromApiValue(
-          preferenceValue,
-        );
-
-        setState(() {
-          _selectedOption = currentOption;
-          _tempSelectedOption = currentOption;
-          _hasChanges = false;
-        });
-      }
-    } catch (e) {
-      print('Error loading lock preferences: $e');
-    }
-  }
-
-  AppLockOption _getAppLockOptionFromApiValue(String apiValue) {
-    switch (apiValue) {
-      case 'immediately':
-        return AppLockOption.immediately;
-      case '1 min':
-        return AppLockOption.oneMinute;
-      case '5 min':
-        return AppLockOption.fiveMinutes;
-      case '10 min':
-        return AppLockOption.tenMinutes;
-      case '30 min':
-        return AppLockOption.thirtyMinutes;
-      case 'off':
-        return AppLockOption.off;
-      default:
-        return AppLockOption.immediately;
-    }
-  }
-
-  String _getOptionLabel(AppLockOption option) {
-    switch (option) {
-      case AppLockOption.immediately:
-        return 'Immediately';
-      case AppLockOption.oneMinute:
-        return 'After 1 minute';
-      case AppLockOption.fiveMinutes:
-        return 'After 5 minutes';
-      case AppLockOption.tenMinutes:
-        return 'After 10 minutes';
-      case AppLockOption.thirtyMinutes:
-        return 'After 30 minutes';
-      case AppLockOption.off:
-        return 'Off';
-    }
-  }
-
-  String _getApiPreferenceValue(AppLockOption option) {
-    switch (option) {
-      case AppLockOption.immediately:
-        return 'immediately';
-      case AppLockOption.oneMinute:
-        return '1 min';
-      case AppLockOption.fiveMinutes:
-        return '5 min';
-      case AppLockOption.tenMinutes:
-        return '10 min';
-      case AppLockOption.thirtyMinutes:
-        return '30 min';
-      case AppLockOption.off:
-        return 'off';
-    }
-  }
-
-  void _selectOption(AppLockOption option) {
+  Future<void> _load() async {
+    final results = await Future.wait([BiometricService.info(), BiometricService.isEnabled()]);
+    if (!mounted) return;
     setState(() {
-      _tempSelectedOption = option;
-      _hasChanges = _tempSelectedOption != _selectedOption;
+      _phone = results[0] as PhoneUnlockInfo;
+      _phoneOn = results[1] as bool;
     });
-  }
-
-  Future<void> _savePreferences() async {
-    if (!_hasChanges) return;
-
-    try {
-      // Get token
-      final token = await TokenService.getAccessToken();
-      if (token == null) {
-        print('No token available for API call');
-        return;
-      }
-
-      // Call API
-      final apiValue = _getApiPreferenceValue(_tempSelectedOption);
-      final result = await ApiService.updateLockPreferences(token, apiValue);
-
-      if (result['success'] == true) {
-        // Update AppLockService with new preferences
-        await _appLockService.updateLockPreferences(apiValue);
-
-        // Only update state if API call was successful
-        setState(() {
-          _selectedOption = _tempSelectedOption;
-          _hasChanges = false;
-        });
-        print('Lock preferences updated successfully');
-        _showSuccessMessage();
-      } else {
-        print('Failed to update lock preferences: ${result['message']}');
-        _showErrorMessage('Failed to save preferences');
-      }
-    } catch (e) {
-      print('Error updating lock preferences: $e');
-      _showErrorMessage('Error saving preferences');
+    final token = await TokenService.getAccessToken();
+    if (token != null) {
+      await _lock.refreshPreference(token);
+      if (mounted) setState(() => _preference = _lock.preference);
     }
   }
 
-  void _showSuccessMessage() {
-    ToasterService.showSuccess(context, 'Preferences saved successfully');
+  Future<void> _setPreference(String value) async {
+    if (value == _preference || _savingPreference != null) return;
+    final previous = _preference;
+    setState(() {
+      _preference = value;
+      _savingPreference = value;
+    });
+    final token = await TokenService.getAccessToken();
+    final result = token == null
+        ? {'success': false}
+        : await ApiService.updateLockPreferences(token, value);
+    if (!mounted) return;
+    if (result['success'] == true) {
+      await _lock.updateLockPreferences(value);
+      setState(() => _savingPreference = null);
+    } else {
+      setState(() {
+        _preference = previous;
+        _savingPreference = null;
+      });
+      ToasterService.showError(context, 'Couldn’t save. Check your connection and try again.');
+    }
   }
 
-  void _showErrorMessage(String message) {
-    ToasterService.showError(context, message);
+  Future<void> _togglePhone(bool on) async {
+    if (!on) {
+      await BiometricService.disable();
+      if (!mounted) return;
+      setState(() => _phoneOn = false);
+      ToasterService.showInfo(context, 'Phone unlock turned off');
+      return;
+    }
+    // The PIN is needed once, to keep it behind the phone's lock
+    final pin = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheet) => _ConfirmPinSheet(label: _phone.label),
+    );
+    if (pin == null || !mounted) return;
+    setState(() => _phoneBusy = true);
+    try {
+      final ok = await BiometricService.enable(pin);
+      if (!mounted) return;
+      setState(() => _phoneOn = ok);
+      if (ok) ToasterService.showSuccess(context, 'You can now unlock with your ${_phone.label}');
+    } catch (_) {
+      if (mounted) ToasterService.showError(context, 'Couldn’t turn on phone unlock. Try again.');
+    } finally {
+      if (mounted) setState(() => _phoneBusy = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final c = context.nv;
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-        title: const Text(
-          'App Lock Preferences',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Automatically lock',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: ListView.separated(
-                itemCount: AppLockOption.values.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 4),
-                itemBuilder: (context, index) {
-                  final option = AppLockOption.values[index];
-                  return InkWell(
-                    onTap: () {
-                      _selectOption(option);
-                    },
-                    splashColor: Colors.transparent,
-                    highlightColor: Colors.transparent,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Row(
-                        children: [
-                          Radio<AppLockOption>(
-                            value: option,
-                            groupValue: _tempSelectedOption,
-                            onChanged: (AppLockOption? value) {
-                              if (value != null) {
-                                _selectOption(value);
-                              }
-                            },
-                            activeColor: Theme.of(context).primaryColor,
-                            overlayColor: WidgetStateProperty.all(
-                              Colors.transparent,
-                            ),
-                            splashRadius: 0,
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            _getOptionLabel(option),
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w400,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                          ),
-                        ],
-                      ),
+      appBar: AppBar(title: const Text('App lock'), shape: Border(bottom: BorderSide(color: c.lineMuted))),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(NvSpace.gutter, NvSpace.xs, NvSpace.gutter, NvSpace.xxl),
+        children: [
+          const NvSectionHeader('Phone unlock'),
+          NvBox(
+            children: [
+              _phone.available
+                  ? NvSwitchRow(
+                      title: 'Unlock with ${_phone.label}',
+                      subtitle: 'Open Notevia with your fingerprint, face or phone screen lock instead of typing your PIN.',
+                      value: _phoneOn,
+                      busy: _phoneBusy,
+                      onChanged: _togglePhone,
+                    )
+                  : const NvRow(
+                      title: 'Phone unlock isn’t available',
+                      subtitle: 'Set up a screen lock or fingerprint on your phone to use it here.',
+                      leading: Icons.lock_outline,
                     ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _hasChanges ? _savePreferences : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 0,
+            ],
+          ),
+          const NvSectionHeader('Automatically lock'),
+          NvBox(
+            children: [
+              for (final option in AppLockService.options)
+                NvRadioRow<String>(
+                  title: AppLockService.labelFor(option),
+                  value: option,
+                  selected: _preference == option,
+                  onSelected: _setPreference,
                 ),
-                child: Text(
-                  'Save Changes',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: _hasChanges ? Colors.white : Colors.grey,
-                  ),
-                ),
-              ),
+            ],
+          ),
+          const SizedBox(height: NvSpace.sm),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: Text(
+              _preference == 'off'
+                  ? 'Notevia stays open until you lock it from the top bar.'
+                  : 'Notevia locks after it has been in the background for this long. This setting is saved to your account.',
+              style: NvText.meta.copyWith(color: c.muted),
             ),
-            const SizedBox(height: 20),
-          ],
-        ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Asks for the Notevia PIN, checks it with the server, then returns it.
+class _ConfirmPinSheet extends StatelessWidget {
+  const _ConfirmPinSheet({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.nv;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(NvSpace.lg, 0, NvSpace.lg, NvSpace.lg),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('Enter your PIN', style: NvText.title.copyWith(color: c.fg)),
+          const SizedBox(height: NvSpace.xxs),
+          Text(
+            'It stays encrypted on this phone and is only unlocked by your $label.',
+            textAlign: TextAlign.center,
+            style: NvText.small.copyWith(color: c.muted),
+          ),
+          const SizedBox(height: NvSpace.lg),
+          NvPinPad(
+            onSubmit: (pin) async {
+              final error = await Session.verifyPin(pin);
+              if (error == null && context.mounted) Navigator.of(context).pop(pin);
+              return error;
+            },
+          ),
+        ],
       ),
     );
   }

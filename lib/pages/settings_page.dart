@@ -1,131 +1,107 @@
 import 'package:flutter/material.dart';
+import '../services/app_lock_service.dart';
+import '../services/biometric_service.dart';
+import '../services/session.dart';
+import '../services/theme_service.dart';
+import '../ui/nv.dart';
+import 'account_page.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
-  void _showFeatureComingSoon(BuildContext context, String feature) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Coming Soon'),
-          content: Text('This feature will come soon!'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  final _themes = ThemeService();
+  final _lock = AppLockService();
+  bool _phoneOn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+  }
+
+  Future<void> _refresh() async {
+    final on = await BiometricService.isEnabled();
+    if (mounted) setState(() => _phoneOn = on);
+  }
+
+  Future<void> _signOut() async {
+    final ok = await showNvConfirm(
+      context,
+      title: 'Sign out?',
+      message: 'You’ll need your email, password and PIN to sign back in. Phone unlock will be turned off.',
+      confirmLabel: 'Sign out',
     );
+    if (ok && mounted) Session.signOut(Navigator.of(context));
   }
 
   @override
   Widget build(BuildContext context) {
-    print('SettingsPage build called');
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-        title: const Text(
-          'Settings',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          children: [
-            // Theme Option
-            Container(
-              margin: const EdgeInsets.only(bottom: 16.0),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[300]!, width: 1),
-              ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 8,
-                ),
-                leading: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.purple[100],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.palette,
-                    color: Colors.purple[600],
-                    size: 24,
-                  ),
-                ),
-                title: const Text(
-                  'Theme',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                ),
-                trailing: Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withOpacity(0.4),
-                ),
-                onTap: () {
-                  _showFeatureComingSoon(context, 'Theme');
-                },
-              ),
-            ),
+    final c = context.nv;
+    final lockSummary = [
+      AppLockService.labelFor(_lock.preference),
+      if (_phoneOn) 'phone unlock on',
+    ].join(', ');
 
-            // App Lock Option
-            Container(
-              margin: const EdgeInsets.only(bottom: 16.0),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[300]!, width: 1),
-              ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 8,
-                ),
-                leading: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.green[100],
-                    borderRadius: BorderRadius.circular(8),
+    return Scaffold(
+      appBar: AppBar(title: const Text('Settings'), shape: Border(bottom: BorderSide(color: c.lineMuted))),
+      body: ListenableBuilder(
+        listenable: Listenable.merge([_themes, _lock]),
+        builder: (context, _) => ListView(
+          padding: const EdgeInsets.fromLTRB(NvSpace.gutter, NvSpace.xs, NvSpace.gutter, NvSpace.xxl),
+          children: [
+            const NvSectionHeader('Appearance'),
+            NvBox(
+              children: [
+                for (final (mode, label) in [
+                  (ThemeMode.system, 'Match phone'),
+                  (ThemeMode.dark, 'Dark'),
+                  (ThemeMode.light, 'Light'),
+                ])
+                  NvRadioRow<ThemeMode>(
+                    title: label,
+                    value: mode,
+                    selected: _themes.themeMode == mode,
+                    onSelected: _themes.setMode,
                   ),
-                  child: Icon(Icons.lock, color: Colors.green[600], size: 24),
+              ],
+            ),
+            const NvSectionHeader('Privacy'),
+            NvBox(
+              children: [
+                NvRow(
+                  title: 'App lock',
+                  subtitle: lockSummary.isEmpty ? null : lockSummary[0].toUpperCase() + lockSummary.substring(1),
+                  leading: Icons.lock_outline,
+                  showChevron: true,
+                  onTap: () async {
+                    await Navigator.of(context).pushNamed('/app-lock-preferences');
+                    _refresh();
+                  },
                 ),
-                title: const Text(
-                  'App Lock',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                NvRow(
+                  title: 'Change PIN',
+                  leading: Icons.pin_outlined,
+                  showChevron: true,
+                  onTap: () => Navigator.of(context).pushNamed('/change-pin'),
                 ),
-                trailing: Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withOpacity(0.4),
+              ],
+            ),
+            const NvSectionHeader('Account'),
+            NvBox(
+              children: [
+                NvRow(
+                  title: 'Profile',
+                  leading: Icons.person_outline,
+                  showChevron: true,
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AccountPage())),
                 ),
-                onTap: () {
-                  Navigator.of(context).pushNamed('/app-lock-preferences');
-                },
-              ),
+                NvRow(title: 'Sign out', leading: Icons.logout, destructive: true, onTap: _signOut),
+              ],
             ),
           ],
         ),

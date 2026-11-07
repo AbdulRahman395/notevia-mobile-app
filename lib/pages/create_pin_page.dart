@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:pin_code_fields/pin_code_fields.dart';
 import '../services/api_service.dart';
-import '../services/token_service.dart';
-import '../services/toaster_service.dart';
+import '../services/biometric_service.dart';
+import '../services/session.dart';
+import '../ui/nv.dart';
 
+enum _Step { create, confirm, phoneUnlock }
+
+/// New PIN: type it, type it again, then optionally turn on phone unlock.
 class CreatePinPage extends StatefulWidget {
   final String token;
 
@@ -15,234 +17,133 @@ class CreatePinPage extends StatefulWidget {
 }
 
 class _CreatePinPageState extends State<CreatePinPage> {
-  final TextEditingController _pinController = TextEditingController();
-  bool _isLoading = false;
+  final _pad = GlobalKey<NvPinPadState>();
+  _Step _step = _Step.create;
+  String _first = '';
+  PhoneUnlockInfo _phone = PhoneUnlockInfo.none;
+  bool _enabling = false;
 
   @override
-  void dispose() {
-    final controller = _pinController;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.dispose();
+  void initState() {
+    super.initState();
+    BiometricService.info().then((i) {
+      if (mounted) setState(() => _phone = i);
     });
-    super.dispose();
   }
 
-  void _createPIN() async {
-    final pin = _pinController.text;
-    if (pin.length != 4) {
-      _showError('Please enter all 4 digits');
-      return;
+  Future<String?> _submit(String pin) async {
+    if (_step == _Step.create) {
+      _first = pin;
+      setState(() => _step = _Step.confirm);
+      _pad.currentState?.reset();
+      return null;
     }
-
-    setState(() {
-      _isLoading = true;
-    });
-
+    if (pin != _first) {
+      setState(() => _step = _Step.create);
+      return 'PINs didn’t match. Start again.';
+    }
     try {
       final result = await ApiService.createPIN(widget.token, pin);
-
-      if (mounted) {
-        if (result['success']) {
-          // Store access token from PIN creation response
-          final accessToken =
-              result['data']['accessToken'] ?? result['data']['token'] ?? '';
-          if (accessToken.isNotEmpty) {
-            await TokenService.storeAccessToken(accessToken);
-          }
-
-          _showSuccess('PIN created successfully!');
-          Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) {
-              Navigator.of(context).pushReplacementNamed('/home');
-            }
-          });
-        } else {
-          _showError(result['message']);
-        }
+      if (result['success'] != true) {
+        setState(() => _step = _Step.create);
+        return (result['message'] ?? 'Couldn’t save your PIN').toString();
       }
-    } catch (e) {
-      if (mounted) {
-        _showError('PIN creation failed: ${e.toString()}');
+      final data = result['data'] ?? {};
+      // A new PIN makes any PIN saved for phone unlock out of date
+      await BiometricService.disable();
+      await Session.opened((data['accessToken'] ?? data['token'] ?? '').toString());
+      if (!mounted) return null;
+      if (_phone.available) {
+        setState(() => _step = _Step.phoneUnlock);
+      } else {
+        _goHome();
       }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      return null;
+    } catch (_) {
+      setState(() => _step = _Step.create);
+      return 'Couldn’t reach Notevia. Check your connection.';
     }
   }
 
-  void _showError(String message) {
-    ToasterService.showError(context, message);
+  Future<void> _turnOnPhoneUnlock() async {
+    setState(() => _enabling = true);
+    try {
+      await BiometricService.enable(_first);
+    } catch (_) {
+      // Not fatal: it can be turned on later in Settings
+    }
+    if (mounted) _goHome();
   }
 
-  void _showSuccess(String message) {
-    ToasterService.showSuccess(context, message);
-  }
+  void _goHome() => Navigator.of(context).pushNamedAndRemoveUntil('/home', (r) => false);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () {
-            Navigator.of(context).pushReplacementNamed(
-              '/pin-verification',
-              arguments: widget.token,
-            );
-          },
-          icon: Icon(Icons.arrow_back, color: Colors.grey[800]),
+    final c = context.nv;
+
+    if (_step == _Step.phoneUnlock) {
+      return NvAuthLayout(
+        header: Icon(_phone.icon, size: 40, color: c.accent),
+        title: 'Unlock with your ${_phone.label}?',
+        subtitle: 'Open Notevia the way you unlock your phone, like WhatsApp. Your PIN still works.',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            NvButton(
+              label: 'Turn on',
+              large: true,
+              expand: true,
+              loading: _enabling,
+              onPressed: _turnOnPhoneUnlock,
+            ),
+            const SizedBox(height: NvSpace.xs),
+            NvButton.secondary(label: 'Not now', large: true, expand: true, onPressed: _enabling ? null : _goHome),
+          ],
         ),
+      );
+    }
+
+    final confirming = _step == _Step.confirm;
+    return Scaffold(
+      appBar: AppBar(
+        leading: confirming
+            ? BackButton(onPressed: () {
+                setState(() => _step = _Step.create);
+                _pad.currentState?.reset();
+              })
+            : null,
+        automaticallyImplyLeading: false,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight:
-                  MediaQuery.of(context).size.height -
-                  MediaQuery.of(context).padding.top -
-                  MediaQuery.of(context).padding.bottom,
-            ),
-            child: IntrinsicHeight(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+        top: false,
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SizedBox(height: 20),
-
-                    // Icon badge
-                    Center(
-                      child: Container(
-                        width: 76,
-                        height: 76,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [Colors.blue[400]!, Colors.blue[600]!],
-                          ),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.blue.withValues(alpha: 0.25),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.lock_outline,
-                          color: Colors.white,
-                          size: 34,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Title
-                    const Text(
-                      'Create PIN',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    // Subtitle
-                    Text(
-                      'Create a 4-digit PIN for secure access to your account',
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // PIN Input Fields
-                    PinCodeTextField(
-                      appContext: context,
-                      controller: _pinController,
-                      length: 4,
-                      obscureText: true,
-                      obscuringCharacter: '●',
-                      blinkWhenObscuring: true,
-                      animationType: AnimationType.fade,
-                      keyboardType: TextInputType.number,
-                      pinTheme: PinTheme(
-                        shape: PinCodeFieldShape.box,
-                        borderRadius: BorderRadius.circular(14),
-                        fieldHeight: 58,
-                        fieldWidth: 58,
-                        activeFillColor: Colors.grey[50],
-                        selectedFillColor: Colors.blue[50],
-                        inactiveFillColor: Colors.grey[50],
-                        activeColor: Colors.grey[300]!,
-                        selectedColor: Colors.blue[500]!,
-                        inactiveColor: Colors.grey[300]!,
-                        borderWidth: 2,
-                      ),
-                      enableActiveFill: true,
-                      textStyle: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                      ),
-                      cursorColor: Colors.blue[500],
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      onCompleted: (pin) {
-                        _createPIN();
-                      },
-                      onChanged: (value) {
-                        // Optional: Handle real-time changes if needed
-                      },
-                    ),
-
-                    const SizedBox(height: 36),
-
-                    // Create PIN Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 54,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _createPIN,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[500],
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
-                                  ),
-                                  strokeWidth: 2.5,
-                                ),
-                              )
-                            : const Text(
-                                'Create PIN',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                      ),
-                    ),
-
-                    // Push content upward, matching verify pin layout
                     const Spacer(),
+                    const NvMark(size: 44),
+                    const SizedBox(height: NvSpace.md),
+                    Text(
+                      confirming ? 'Confirm your PIN' : 'Create a PIN',
+                      style: NvText.title.copyWith(color: c.fg),
+                    ),
+                    const SizedBox(height: NvSpace.xxs),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: NvSpace.lg),
+                      child: Text(
+                        confirming
+                            ? 'Enter the same 4 digits again'
+                            : 'You’ll use it to open Notevia on this phone',
+                        textAlign: TextAlign.center,
+                        style: NvText.small.copyWith(color: c.muted),
+                      ),
+                    ),
+                    const SizedBox(height: NvSpace.xl),
+                    NvPinPad(key: _pad, onSubmit: _submit),
+                    const Spacer(flex: 2),
                   ],
                 ),
               ),

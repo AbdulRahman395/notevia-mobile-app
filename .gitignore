@@ -7,6 +7,9 @@
 .flutter-plugins-dependencies
 .generated/
 
+# AI related
+.claude/
+
 # Build artifacts
 build/
 */*.iml
